@@ -664,7 +664,7 @@ export const en = {
   workspaceSettingsDescription: 'Applies only to the current workspace.',
   timeZoneTitle: 'Time zone',
   timeZoneDescription:
-    'Controls displayed timestamps and daily/monthly resource allowance resets across this instance. Historical operational usage charts retain their UTC buckets.',
+    'Controls displayed timestamps, hourly activity, and daily/monthly resource allowance resets across this instance. Daily usage summaries retain their UTC boundaries.',
   timeZoneLabel: 'Instance time zone',
   timeZoneHint:
     'Enter an IANA time zone, such as Asia/Shanghai. Changes take effect immediately.',

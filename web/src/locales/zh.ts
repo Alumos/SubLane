@@ -609,7 +609,7 @@ export const zh: Record<keyof typeof en, string> = {
   workspaceSettingsDescription: '设置仅影响当前工作空间。',
   timeZoneTitle: '时区',
   timeZoneDescription:
-    '控制整个实例显示的时间和每日／每月用量分配的重置时间。历史运行统计图仍沿用 UTC 分组。',
+    '控制整个实例显示的时间、时段分布和每日／每月用量分配的重置时间。每日用量汇总仍按 UTC 日期划分。',
   timeZoneLabel: '实例时区',
   timeZoneHint: '请输入 IANA 时区，例如 Asia/Shanghai。保存后立即生效。',
   timeZonePreview: '当前时间：{{time}}（{{zone}}）',

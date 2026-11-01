@@ -425,7 +425,7 @@
   "systemSettingsDescription": "設定影響所有工作空間。",
   "workspaceSettingsDescription": "設定僅影響目前工作空間。",
   "timeZoneTitle": "時區",
-  "timeZoneDescription": "控制此實例顯示的時間，以及用量分配的每日／每月重設時間。歷史運作統計仍保留 UTC 時間區間。",
+  "timeZoneDescription": "控制整個實例顯示的時間、時段分布和每日／每月用量分配的重設時間。每日用量彙總仍按 UTC 日期劃分。",
   "timeZoneLabel": "實例時區",
   "timeZoneHint": "請輸入 IANA 時區，例如 Asia/Shanghai。變更立即生效。",
   "timeZonePreview": "目前時間：{{time}}（{{zone}}）",

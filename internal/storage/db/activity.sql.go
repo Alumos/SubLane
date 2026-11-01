@@ -21,8 +21,7 @@ func (q *Queries) GetHourlyCoverage(ctx context.Context) (string, error) {
 }
 
 const listHourlyActivity = `-- name: ListHourlyActivity :many
-SELECT CAST((CAST(strftime('%w',h.hour,'unixepoch') AS INTEGER)+6)%7 AS INTEGER) AS weekday,
-CAST(strftime('%H',h.hour,'unixepoch') AS INTEGER) AS hour_of_day,
+SELECT h.hour,
 CAST(SUM(h.requests) AS INTEGER) AS requests,
 CAST(SUM(h.input_tokens) AS INTEGER) AS input_tokens,
 CAST(SUM(h.output_tokens) AS INTEGER) AS output_tokens,
@@ -30,7 +29,7 @@ CAST(SUM(h.input_reported) AS INTEGER) AS input_reported,
 CAST(SUM(h.output_reported) AS INTEGER) AS output_reported
 FROM usage_hourly h
 WHERE h.tenant_id=?1 AND h.hour>=?2 AND h.hour<?3 AND (h.user_id=?4 OR ?4=0) AND (h.key_id=?5 OR ?5=0)
-GROUP BY 1,2 ORDER BY 1,2 LIMIT 168
+GROUP BY h.hour ORDER BY h.hour LIMIT 2160
 `
 
 type ListHourlyActivityParams struct {
@@ -42,8 +41,7 @@ type ListHourlyActivityParams struct {
 }
 
 type ListHourlyActivityRow struct {
-	Weekday        int64
-	HourOfDay      int64
+	Hour           int64
 	Requests       int64
 	InputTokens    int64
 	OutputTokens   int64
@@ -51,6 +49,7 @@ type ListHourlyActivityRow struct {
 	OutputReported int64
 }
 
+// Reports span at most 90 UTC days, so 2160 rows retain every persisted hourly bucket.
 func (q *Queries) ListHourlyActivity(ctx context.Context, arg ListHourlyActivityParams) ([]ListHourlyActivityRow, error) {
 	rows, err := q.db.QueryContext(ctx, listHourlyActivity,
 		arg.TenantID,
@@ -67,8 +66,7 @@ func (q *Queries) ListHourlyActivity(ctx context.Context, arg ListHourlyActivity
 	for rows.Next() {
 		var i ListHourlyActivityRow
 		if err := rows.Scan(
-			&i.Weekday,
-			&i.HourOfDay,
+			&i.Hour,
 			&i.Requests,
 			&i.InputTokens,
 			&i.OutputTokens,

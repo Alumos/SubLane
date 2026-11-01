@@ -20,13 +20,14 @@ type ActivityCell struct {
 }
 
 type Activity struct {
+	TimeZone      string         `json:"time_zone"`
 	TrackingSince int64          `json:"tracking_since"`
 	ObservedUntil int64          `json:"observed_until"`
 	Cells         []ActivityCell `json:"cells"`
 }
 
-func readActivity(ctx context.Context, q *db.Queries, tenantID, userID, keyID, from, to, now int64) (Activity, error) {
-	result := Activity{Cells: make([]ActivityCell, 168), ObservedUntil: min(now, to-1)}
+func readActivity(ctx context.Context, q *db.Queries, tenantID, userID, keyID, from, to, now int64, location *time.Location) (Activity, error) {
+	result := Activity{TimeZone: location.String(), Cells: make([]ActivityCell, 168), ObservedUntil: min(now, to-1)}
 	for i := range result.Cells {
 		result.Cells[i].Weekday = int64(i / 24)
 		result.Cells[i].Hour = int64(i % 24)
@@ -60,21 +61,25 @@ func readActivity(ctx context.Context, q *db.Queries, tenantID, userID, keyID, f
 	// Count only elapsed/started hourly windows. Pre-migration and future slots are not zero activity.
 	// The first and current hours may be partial; the coverage timestamps expose those bounds.
 	for hour := firstHour; hour <= result.ObservedUntil; hour += 3600 {
-		stamp := time.Unix(hour, 0).UTC()
-		index := (int(stamp.Weekday())+6)%7*24 + stamp.Hour()
-		result.Cells[index].Samples++
+		result.Cells[activityIndex(hour, location)].Samples++
 	}
 	rows, err := q.ListHourlyActivity(ctx, db.ListHourlyActivityParams{TenantID: tenantID, UserID: userID, KeyID: keyID, FromHour: firstHour, ToHour: result.ObservedUntil - result.ObservedUntil%3600 + 3600})
 	if err != nil {
 		return result, err
 	}
 	for _, row := range rows {
-		cell := &result.Cells[row.Weekday*24+row.HourOfDay]
-		cell.Requests = row.Requests
-		cell.InputTokens = row.InputTokens
-		cell.OutputTokens = row.OutputTokens
-		cell.InputReported = row.InputReported
-		cell.OutputReported = row.OutputReported
+		cell := &result.Cells[activityIndex(row.Hour, location)]
+		cell.Requests += row.Requests
+		cell.InputTokens += row.InputTokens
+		cell.OutputTokens += row.OutputTokens
+		cell.InputReported += row.InputReported
+		cell.OutputReported += row.OutputReported
 	}
 	return result, nil
+}
+
+func activityIndex(hour int64, location *time.Location) int {
+	// UTC buckets are indivisible; use their start and historical offset, including DST changes.
+	stamp := time.Unix(hour, 0).In(location)
+	return (int(stamp.Weekday())+6)%7*24 + stamp.Hour()
 }

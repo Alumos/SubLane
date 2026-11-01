@@ -425,7 +425,7 @@
   "systemSettingsDescription": "Aplica-se a cada espaço de trabalho.",
   "workspaceSettingsDescription": "Aplica-se apenas ao espaço de trabalho atual.",
   "timeZoneTitle": "Fuso horário",
-  "timeZoneDescription": "Controla os horários exibidos e as redefinições diárias ou mensais das alocações de uso nesta instância. Os gráficos históricos mantêm seus intervalos UTC.",
+  "timeZoneDescription": "Controla os horários exibidos, a atividade por hora e as redefinições diárias ou mensais das alocações de uso nesta instância. Os resumos diários continuam a seguir os limites de data UTC.",
   "timeZoneLabel": "Fuso horário da instância",
   "timeZoneHint": "Informe um fuso horário IANA, como Asia/Shanghai. As alterações entram em vigor imediatamente.",
   "timeZonePreview": "Hora atual: {{time}} ({{zone}})",

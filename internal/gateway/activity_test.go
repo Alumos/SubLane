@@ -6,8 +6,104 @@ import (
 	"testing"
 	"time"
 
+	"github.com/murongg/SubLane/internal/audit"
 	"github.com/murongg/SubLane/internal/storage/db"
+	"github.com/murongg/SubLane/internal/timezone"
 )
+
+func TestActivityFollowsInstanceTimeZoneAcrossWeeks(t *testing.T) {
+	ctx := context.Background()
+	s, _ := codexGateway(t, transportFunc(func(*http.Request) (*http.Response, error) { t.Fatal("unexpected upstream"); return nil, nil }))
+	zones, err := timezone.New(ctx, s.db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetTimeZone(zones)
+	now := time.Date(2030, 1, 14, 2, 0, 0, 0, time.UTC)
+	s.now = func() time.Time { return now }
+	since := time.Date(2030, 1, 6, 15, 30, 0, 0, time.UTC)
+	if _, err := s.db.Exec("UPDATE settings SET value=? WHERE key='usage.hourly.started_at'", since.Unix()); err != nil {
+		t.Fatal(err)
+	}
+	input := int64(7)
+	for _, started := range []time.Time{since, since.Add(time.Hour), since.Add(7*24*time.Hour + time.Hour)} {
+		if err := recordStatistics(ctx, s.queries, db.RecordRequestParams{UserID: 1, GroupID: 1, StartedAt: started.Unix(), Outcome: "success", InputTokens: &input}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	actor := audit.WithActor(ctx, audit.Actor{TenantID: 1, ID: 1, Username: "synthetic-admin", Role: "admin", Source: "user"})
+	for _, name := range []string{"Asia/Shanghai", "UTC", "Asia/Shanghai"} {
+		if _, err := zones.Save(actor, name); err != nil {
+			t.Fatal(err)
+		}
+		page, err := s.UserStatistics(ctx, 1, 30)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if page.Activity.TimeZone != name {
+			t.Fatalf("aggregation zone = %s, want %s", page.Activity.TimeZone, name)
+		}
+		index, previous := 0, 6*24+23
+		if name == "UTC" {
+			index, previous = 6*24+16, 6*24+15
+		}
+		cell := page.Activity.Cells[index]
+		if cell.Requests != 2 || cell.InputTokens != 14 || cell.InputReported != 2 || cell.Samples != 2 {
+			t.Fatalf("%s: wrong local weekday/hour aggregation: %+v", name, cell)
+		}
+		if cell := page.Activity.Cells[previous]; cell.Requests != 1 || cell.Samples != 2 {
+			t.Fatalf("%s: partial first hour lost: %+v", name, cell)
+		}
+		if name == "Asia/Shanghai" && page.Activity.Cells[11].Samples != 1 {
+			t.Fatal("future local hour counted beyond the earlier week")
+		}
+	}
+}
+
+func TestActivityUsesHistoricalDaylightSavingOffsets(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		start   time.Time
+		hours   []int
+		samples map[int]int64
+	}{
+		{"spring", time.Date(2030, 3, 10, 6, 0, 0, 0, time.UTC), []int{0, 1}, map[int]int64{1: 1, 2: 0, 3: 1}},
+		{"fall", time.Date(2030, 11, 3, 5, 0, 0, 0, time.UTC), []int{0, 1}, map[int]int64{0: 0, 1: 2, 2: 0}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			s, _ := codexGateway(t, transportFunc(func(*http.Request) (*http.Response, error) { t.Fatal("unexpected upstream"); return nil, nil }))
+			zones, err := timezone.New(ctx, s.db)
+			if err != nil {
+				t.Fatal(err)
+			}
+			s.SetTimeZone(zones)
+			actor := audit.WithActor(ctx, audit.Actor{TenantID: 1, ID: 1, Username: "synthetic-admin", Role: "admin", Source: "user"})
+			if _, err := zones.Save(actor, "America/New_York"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.db.Exec("UPDATE settings SET value=? WHERE key='usage.hourly.started_at'", test.start.Unix()); err != nil {
+				t.Fatal(err)
+			}
+			s.now = func() time.Time { return test.start.Add(90 * time.Minute) }
+			for _, hour := range test.hours {
+				if err := recordStatistics(ctx, s.queries, db.RecordRequestParams{UserID: 1, GroupID: 1, StartedAt: test.start.Add(time.Duration(hour) * time.Hour).Unix(), Outcome: "success"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			page, err := s.Statistics(ctx, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for hour, samples := range test.samples {
+				cell := page.Activity.Cells[6*24+hour]
+				if cell.Samples != samples || cell.Requests != samples {
+					t.Errorf("local hour %d: got %+v, want %d samples and requests", hour, cell, samples)
+				}
+			}
+		})
+	}
+}
 
 func TestActivityUsesUTCHoursAndSessionOwnershipAcrossWeeks(t *testing.T) {
 	ctx := context.Background()

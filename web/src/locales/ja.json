@@ -425,7 +425,7 @@
   "systemSettingsDescription": "すべてのワークスペースに適用されます。",
   "workspaceSettingsDescription": "現在のワークスペースにのみ適用されます。",
   "timeZoneTitle": "タイムゾーン",
-  "timeZoneDescription": "このインスタンスの時刻表示と利用枠の日次・月次リセットを設定します。過去の運用使用量グラフは UTC の集計区間を保持します。",
+  "timeZoneDescription": "このインスタンスの時刻表示、時間帯別の利用状況、利用枠の日次・月次リセットを設定します。日別の使用量集計は引き続き UTC の日付で区切られます。",
   "timeZoneLabel": "インスタンスのタイムゾーン",
   "timeZoneHint": "Asia/Shanghai などの IANA タイムゾーンを入力してください。変更は直ちに反映されます。",
   "timeZonePreview": "現在時刻: {{time}} ({{zone}})",

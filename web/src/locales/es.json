@@ -425,7 +425,7 @@
   "systemSettingsDescription": "Se aplica a todos los espacios de trabajo.",
   "workspaceSettingsDescription": "Se aplica solo al espacio de trabajo actual.",
   "timeZoneTitle": "Zona horaria",
-  "timeZoneDescription": "Controla las horas mostradas y los restablecimientos diarios o mensuales de las asignaciones de uso en esta instancia. Los gráficos históricos conservan sus intervalos UTC.",
+  "timeZoneDescription": "Controla las horas mostradas, la actividad por hora y los restablecimientos diarios o mensuales de las asignaciones de uso en esta instancia. Los resúmenes diarios siguen los límites de fecha UTC.",
   "timeZoneLabel": "Zona horaria de la instancia",
   "timeZoneHint": "Introduce una zona horaria IANA, como Asia/Shanghai. Los cambios se aplican inmediatamente.",
   "timeZonePreview": "Hora actual: {{time}} ({{zone}})",

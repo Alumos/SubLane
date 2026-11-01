@@ -13,6 +13,20 @@ import {
   hourlyActivity,
 } from '@/test/fixtures'
 
+it('separates cached activity when the instance time zone changes', () => {
+  const client = createQueryClient()
+  client.setQueryData(authKey, { ...authenticated, time_zone: 'UTC' })
+  const previous = statisticsOptions(client, 1, 'personal', 7)
+  client.setQueryData<{ activity: typeof hourlyActivity }>(previous.queryKey, {
+    activity: hourlyActivity,
+  })
+  client.setQueryData(authKey, { ...authenticated, time_zone: 'Asia/Shanghai' })
+  const current = statisticsOptions(client, 1, 'personal', 7)
+  expect(current.queryKey).not.toEqual(previous.queryKey)
+  expect(client.getQueryData(current.queryKey)).toBeUndefined()
+  client.clear()
+})
+
 it.each(['audit', 'members'] as const)(
   'does not seed a clamped %s page after switching administrators',
   async (kind) => {

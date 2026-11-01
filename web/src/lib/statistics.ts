@@ -40,6 +40,7 @@ const activityCellSchema = z
       cell.output_reported <= cell.requests,
   )
 const activitySchema = z.object({
+  time_zone: z.string().min(1).max(64),
   tracking_since: z.number().int().nonnegative(),
   observed_until: z.number().int().nonnegative(),
   cells: z
@@ -83,8 +84,16 @@ export function statisticsOptions(
   keyID?: number,
 ) {
   const selectedKey = scope === 'personal' ? keyID : undefined
+  const timeZone = client.getQueryData<AuthState>(authKey)?.time_zone ?? 'UTC'
   return queryOptions({
-    queryKey: ['statistics', userID, scope, days, selectedKey ?? null],
+    queryKey: [
+      'statistics',
+      userID,
+      scope,
+      days,
+      selectedKey ?? null,
+      timeZone,
+    ],
     enabled: () => {
       const user = client.getQueryData<AuthState>(authKey)?.user
       return (

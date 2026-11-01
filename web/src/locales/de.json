@@ -425,7 +425,7 @@
   "systemSettingsDescription": "Gilt für jeden Workspace.",
   "workspaceSettingsDescription": "Gilt nur für den aktuellen Workspace.",
   "timeZoneTitle": "Zeitzone",
-  "timeZoneDescription": "Steuert angezeigte Zeitstempel und tägliche oder monatliche Rücksetzungen der Nutzungskontingente in dieser Instanz. Historische Betriebsstatistiken behalten ihre UTC-Zeitintervalle.",
+  "timeZoneDescription": "Steuert angezeigte Zeitstempel, stündliche Aktivitäten und tägliche oder monatliche Rücksetzungen der Nutzungskontingente in dieser Instanz. Tägliche Nutzungsübersichten behalten ihre UTC-Tagesgrenzen.",
   "timeZoneLabel": "Zeitzone",
   "timeZoneHint": "Geben Sie eine IANA-Zeitzone wie Asia/Shanghai ein. Änderungen gelten sofort.",
   "timeZonePreview": "Aktuelle Uhrzeit: {{time}} ({{zone}})",

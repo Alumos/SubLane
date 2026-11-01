@@ -37,6 +37,7 @@ export function withPage(value: unknown) {
 }
 
 export const hourlyActivity = {
+  time_zone: 'UTC',
   tracking_since: 1900000000,
   observed_until: 1900003600,
   cells: Array.from({ length: 168 }, (_, index) => ({

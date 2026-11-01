@@ -425,7 +425,7 @@
   "systemSettingsDescription": "모든 작업 공간에 적용됩니다.",
   "workspaceSettingsDescription": "현재 작업 공간에만 적용됩니다.",
   "timeZoneTitle": "시간대",
-  "timeZoneDescription": "이 인스턴스의 시간 표시와 사용량 할당의 일간·월간 재설정 시간을 설정합니다. 과거 운영 사용량 차트의 UTC 집계 구간은 유지됩니다.",
+  "timeZoneDescription": "이 인스턴스의 시간 표시, 시간대별 활동, 사용량 할당의 일간·월간 재설정 시간을 설정합니다. 일별 사용량 요약은 계속 UTC 날짜를 기준으로 집계됩니다.",
   "timeZoneLabel": "인스턴스 시간대",
   "timeZoneHint": "Asia/Shanghai와 같은 IANA 시간대를 입력하세요. 변경 사항은 즉시 적용됩니다.",
   "timeZonePreview": "현재 시간: {{time}} ({{zone}})",

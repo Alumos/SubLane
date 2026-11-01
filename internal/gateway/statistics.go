@@ -83,7 +83,7 @@ func (s *Service) statistics(ctx context.Context, userID, days, keyID int64) (St
 		}
 	}
 	// All summaries use one snapshot; concurrent completions cannot make totals and breakdowns disagree.
-	page.Activity, err = readActivity(ctx, q, s.tenantID, userID, keyID, page.FromDay, page.ToDay, now.Unix())
+	page.Activity, err = readActivity(ctx, q, s.tenantID, userID, keyID, page.FromDay, page.ToDay, now.Unix(), s.location())
 	if err != nil {
 		return page, err
 	}

@@ -425,7 +425,7 @@
   "systemSettingsDescription": "S'applique à chaque espace de travail.",
   "workspaceSettingsDescription": "Ne s'applique qu'à l'espace de travail actuel.",
   "timeZoneTitle": "Fuseau horaire",
-  "timeZoneDescription": "Définit les heures affichées et les réinitialisations quotidiennes ou mensuelles des allocations d’usage de cette instance. Les graphiques historiques conservent leurs intervalles UTC.",
+  "timeZoneDescription": "Définit les heures affichées, l’activité par heure et les réinitialisations quotidiennes ou mensuelles des allocations d’usage de cette instance. Les totaux quotidiens restent délimités par les dates UTC.",
   "timeZoneLabel": "Fuseau horaire de l'instance",
   "timeZoneHint": "Saisissez un fuseau horaire IANA, comme Asia/Shanghai. Les changements prennent effet immédiatement.",
   "timeZonePreview": "Heure actuelle & #160;: {{time}} ({{zone}})",

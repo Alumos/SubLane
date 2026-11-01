@@ -10,7 +10,6 @@ import {
 } from '@/lib/statistics'
 
 import { heatmapTone } from '@/lib/heatmap'
-import { useTimeZone } from '@/lib/timezone'
 import { HeatmapLegend } from './HeatmapLegend'
 
 function amount(cell: ActivityCell, metric: UsageMetric) {
@@ -25,7 +24,7 @@ export function ActivityMap({
   metric: UsageMetric
 }) {
   const { t, i18n } = useTranslation()
-  const timeZone = useTimeZone()
+  const timeZone = activity.time_zone
   const title = useId()
   const help = useId()
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
@@ -106,7 +105,7 @@ export function ActivityMap({
           {t('activityTitle')}
         </h2>
         <span className="text-xs text-muted-foreground">
-          {t(metricLabels[metric])} · UTC
+          {t(metricLabels[metric])} · {timeZone}
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
