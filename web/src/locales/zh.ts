@@ -1,6 +1,37 @@
 import type { en } from './en'
 
 export const zh: Record<keyof typeof en, string> = {
+  updatesTitle: '软件更新',
+  updatesDescription:
+    '检查 SubLane 官方版本并更新当前实例。仅平台所有者可以安装更新。',
+  updateCurrent: '当前版本',
+  updateLatest: '最新正式版',
+  updateCheck: '检查更新',
+  updateInstall: '更新至 {{version}}',
+  updateConfirmTitle: '更新 SubLane',
+  updateConfirmDescription:
+    '安装 {{version}} 并重启 SubLane？正在进行的请求可能中断。请先导出并验证备份；重新安装旧版本无法撤销数据库迁移。',
+  updateBackupConfirm: '我已导出并验证当前备份。',
+  updateConfirm: '安装更新',
+  updateDisabled: '请先启用宿主机更新进程，之后即可在此安装更新。',
+  updateSetup: '配置网页更新',
+  updateQueued: '更新已排队，等待宿主机更新进程执行。',
+  updateRunning: '正在安装更新，SubLane 将重启。',
+  updateSucceeded: '更新完成，刷新页面以使用新版本。',
+  updateFailed:
+    '更新失败。请先检查宿主机更新日志，再决定是否重试；已迁移的数据库可能需要从验证过的备份恢复。',
+  updateInterrupted: '更新已中断。请先检查已安装版本和宿主机更新日志。',
+  updateReconnecting: '正在重新连接 SubLane…',
+  updateReload: '刷新页面',
+  updateNoNew: '未发现更新的正式版。',
+  updateCheckFailed: '无法检查正式版，请检查 GitHub 网络连接后稍后重试。',
+  updateRequestFailed:
+    '无法确认更新请求状态，请先刷新查看状态，再决定是否重试。',
+  updateCooldown: '请等待一分钟后再次检查。',
+  updateReleaseNotes: '版本说明',
+  updateBuildUnsupported: '当前构建需要手动升级，网页安装仅支持正式版构建。',
+  updateWorkerLost: '宿主机更新进程未响应，请在服务器检查对应的 systemd 服务。',
+  auditUpdateRequest: '请求软件更新',
   allocationInitialEditHint:
     '首次生效前可在此修正初始成员配置；保存保留已核对的生效时间和计量锚点。',
   allocationReplacePendingHint:

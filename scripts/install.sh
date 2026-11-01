@@ -10,14 +10,15 @@ usage() {
   cat <<'HELP'
 Install or update SubLane from a published Docker image or Linux binary.
 
-Usage: bash install.sh [--version VERSION] [--dir DIRECTORY] [--port PORT]
+Usage: bash install.sh [--version VERSION] [--dir DIRECTORY] [--port PORT] [--enable-updates]
                        [--runtime docker|binary] [--proxy none|caddy|nginx]
                        [--domain DOMAIN] [--trusted-proxies CIDRS]
                        [--wait-timeout SECONDS] [--demo] [--non-interactive]
-       bash install.sh --update [--dir DIRECTORY] [--version VERSION]
+       bash install.sh --update [--dir DIRECTORY] [--version VERSION] [--enable-updates]
                        [--wait-timeout SECONDS] [--non-interactive]
 
   --update           Update an existing script-managed installation in place
+  --enable-updates   Enable owner-only web updates through a systemd user worker
   --version VERSION  Published version, with or without v (default: latest stable,
                      or newest published prerelease when no stable release exists)
   --dir DIRECTORY    Installation directory (default: ./sublane)
@@ -515,6 +516,15 @@ load_installation() {
     || fail 'Update requires an existing installation directory, not a symlink.'
   command -v awk >/dev/null || fail 'Install awk first.'
   install_dir=$(cd -- "$install_dir" && pwd -P)
+  [[ ! -L $install_dir/.updater && ! -L $install_dir/.updater/mailbox ]] \
+    || fail 'Update does not follow symlinked worker directories.'
+  if [[ -e $install_dir/.updater/compose.yaml || -L $install_dir/.updater/compose.yaml ]]; then
+    [[ -f $install_dir/.updater/compose.yaml && ! -L $install_dir/.updater/compose.yaml ]] \
+      || fail 'Update does not follow a symlinked worker overlay.'
+    command -v jq >/dev/null || fail 'Install jq for the enabled host updater.'
+    cmp -s "$install_dir/.updater/compose.yaml" <(online_compose) \
+      || fail 'The host-worker overlay was customized; use the manual upgrade procedure.'
+  fi
   if [[ -f $install_dir/.env && -f $install_dir/docker.compose.yaml && ! -e $install_dir/sublane.env ]]; then
     local image override
     local -a overrides=("$install_dir"/docker.compose.*.yaml "$install_dir"/docker.compose.*.yml)
@@ -567,6 +577,22 @@ prepare_release() {
   for dependency in curl awk mktemp; do
     command -v "$dependency" >/dev/null || fail "Install $dependency first."
   done
+  if [[ $install_enable_updates == true ]]; then
+    for dependency in jq systemctl uname; do
+      command -v "$dependency" >/dev/null || fail "Install $dependency to enable web updates."
+    done
+    [[ $(uname -s) == Linux && $install_demo != true ]] || fail 'Web updates require a normal Linux installation.'
+    systemctl --user show-environment >/dev/null 2>&1 || fail 'A running systemd user manager is required for web updates.'
+    case "$install_dir" in
+      *'%'*|*'$'*|*'"'*|*$'\\'*) fail 'Web update paths cannot contain %, $, quotes, or backslashes.' ;;
+    esac
+    local helper
+    for helper in .updater .updater/mailbox .updater/install.sh .updater/updater.sh .updater/compose.yaml; do
+      [[ ! -L $install_dir/$helper ]] || fail 'Web updates refuse symlinked worker files.'
+    done
+    [[ ! -e $install_dir/.updater/mailbox/request.json && ! -L $install_dir/.updater/mailbox/request.json ]] \
+      || fail 'A web update is already queued.'
+  fi
   if [[ -z $install_version ]]; then
     command -v jq >/dev/null || fail 'Install jq for automatic version selection, or pass --version explicitly.'
   fi
@@ -618,6 +644,14 @@ download_release() {
   download "$install_artifact"
   download SHA256SUMS
   verify_download "$install_artifact"
+  if [[ $install_enable_updates == true ]]; then
+    local helper
+    for helper in install.sh updater.sh; do
+      download "$helper"
+      verify_download "$helper"
+      bash -n "$install_stage/$helper" || fail "Invalid verified $helper."
+    done
+  fi
   if [[ $install_runtime == docker ]]; then
     require_demo_support "$install_stage/docker.compose.yaml"
   else
@@ -643,10 +677,77 @@ update_compose() {
     # Let the saved .env win over unrelated settings inherited from the caller.
     for variable in ${!SUBLANE_@}; do unset "$variable"; done
     unset COMPOSE_PROJECT_NAME COMPOSE_FILE COMPOSE_ENV_FILES COMPOSE_PROFILES
+    local -a files=(-f "$directory/docker.compose.yaml")
+    if [[ -f $install_dir/.updater/compose.yaml ]]; then files+=(-f "$install_dir/.updater/compose.yaml"); fi
     # Relative bind mounts must resolve against the live deployment, including during pull.
     docker compose --project-name "$install_project" --project-directory "$install_dir" \
-      --env-file "$directory/.env" -f "$directory/docker.compose.yaml" "$@" </dev/null
+      --env-file "$directory/.env" "${files[@]}" "$@" </dev/null
   )
+}
+
+online_compose() {
+  cat <<COMPOSE
+services:
+  sublane:
+    environment:
+      SUBLANE_UPDATE_DIR: /run/sublane-updates
+    volumes:
+      - type: bind
+        source: $(jq -Rn --arg path "$install_dir/.updater/mailbox" '$path')
+        target: /run/sublane-updates
+COMPOSE
+}
+
+enable_online_updates() {
+  install_dir=$(cd -- "$install_dir" && pwd -P)
+  local private=$install_dir/.updater unit=updater-$install_project.service name
+  [[ ! -L $private && ! -L $private/mailbox ]] || fail 'Web updates refuse symlinked worker directories.'
+  [[ ! -e $private/mailbox/request.json && ! -L $private/mailbox/request.json ]] || fail 'A web update is already queued.'
+  mkdir -p -- "$private/mailbox"
+  chmod 0700 "$private"
+  # The private parent protects the host; the bind-mounted mailbox supports arbitrary container UIDs.
+  chmod 0777 "$private/mailbox"
+  for name in install.sh updater.sh; do
+    [[ ! -L $private/$name ]] || fail 'Web updates refuse symlinked helper files.'
+    cp "$install_stage/$name" "$private/$name"
+    chmod 0700 "$private/$name"
+  done
+  cat > "$private/$unit" <<UNIT
+[Unit]
+Description=SubLane host updater
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash "$private/updater.sh" --run "$install_dir"
+Restart=on-failure
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=default.target
+UNIT
+  if [[ $install_runtime == docker ]]; then
+    online_compose > "$private/compose.yaml"
+    update_compose "$install_dir" config --quiet || fail 'Web update Compose configuration is invalid.'
+    update_compose "$install_dir" up --detach --wait --wait-timeout "$install_wait_timeout" --no-build \
+      || fail 'SubLane did not become ready with the update mailbox.'
+  else
+    [[ ! -L $install_dir/sublane.env ]] || fail 'Web updates refuse symlinked configuration.'
+    awk '!/^[[:space:]]*SUBLANE_UPDATE_DIR[[:space:]]*=/' "$install_dir/sublane.env" > "$private/sublane.env"
+    printf '\nSUBLANE_UPDATE_DIR=%q\n' "$private/mailbox" >> "$private/sublane.env"
+    mv -- "$private/sublane.env" "$install_dir/sublane.env"
+    systemctl --user restart "$install_unit" || fail 'Could not restart SubLane with the update mailbox.'
+    binary_ready || fail 'SubLane did not become ready with the update mailbox.'
+  fi
+  if ! systemctl --user link "$private/$unit" \
+    || ! systemctl --user daemon-reload \
+    || ! systemctl --user enable "$unit" \
+    || ! systemctl --user restart "$unit"; then
+    fail 'Could not enable the host updater. Inspect its systemd user unit.'
+  fi
+  printf '\nWeb updates enabled. Host diagnostics: %s/last.log\n' "$private"
 }
 
 update_failed() {
@@ -709,6 +810,7 @@ update_installation() {
     binary_ready || update_failed "Updated systemd service did not become ready within $install_wait_timeout seconds."
   fi
   printf '\nUpdate complete: %s\nPrevious files: %s\n' "$install_dir" "$install_backup"
+  if [[ $install_enable_updates == true ]]; then enable_online_updates; fi
 }
 
 main() {
@@ -724,6 +826,7 @@ main() {
   install_no_prompt=false
   install_prompted=false
   install_update=false
+  install_enable_updates=false
   install_options=false
   install_lock=''
   while [[ $# -gt 0 ]]; do
@@ -747,6 +850,7 @@ main() {
         ;;
       --non-interactive) install_no_prompt=true; shift ;;
       --update) install_update=true; shift ;;
+      --enable-updates) install_enable_updates=true; shift ;;
       --demo) install_demo=true; install_options=true; shift ;;
       --help|-h) usage; return ;;
       *) fail "Unknown argument: $1. Use --help." ;;
@@ -855,6 +959,7 @@ main() {
   generate_proxy_config
   show_configuration
   if [[ $install_runtime == docker ]]; then install_docker; else install_binary; fi
+  if [[ $install_enable_updates == true ]]; then enable_online_updates; fi
   printf '\nInstallation complete: %s\n' "$install_dir"
   if [[ $install_proxy == none ]]; then
     if [[ $install_demo == true ]]; then

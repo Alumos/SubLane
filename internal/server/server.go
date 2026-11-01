@@ -28,6 +28,7 @@ import (
 	"github.com/murongg/SubLane/internal/tenants"
 	"github.com/murongg/SubLane/internal/timezone"
 	"github.com/murongg/SubLane/internal/turnstile"
+	"github.com/murongg/SubLane/internal/updates"
 	"github.com/murongg/SubLane/internal/upstream"
 	"github.com/murongg/SubLane/internal/versions"
 )
@@ -62,6 +63,7 @@ type Options struct {
 	ClaudeVersions     *versions.Service
 	TimeZone           *timezone.Service
 	Turnstile          *turnstile.Service
+	Updates            *updates.Service
 	ProxyCheck         func(context.Context, string) (upstream.ProxyCheck, error)
 }
 
@@ -227,6 +229,10 @@ func New(o Options) http.Handler {
 		management.Route("/alerts", (&alertHTTP{service: o.Alerts, tenantID: tenantID}).register)
 		management.Route("/content", (&contentHTTP{service: o.Content}).register)
 		management.Get("/audit", (&auditHTTP{service: o.Audit}).list)
+		management.Route("/settings/updates", func(settings chi.Router) {
+			settings.Use(requirePlatformAdmin(tenantID))
+			(&updateHTTP{service: o.Updates, audit: o.Audit, version: o.Version}).register(settings)
+		})
 		management.Route("/settings/backup", func(settings chi.Router) {
 			settings.Use(requirePlatformAdmin(tenantID))
 			(&backupHTTP{directory: o.DataDir, keyFile: o.CredentialsKeyFile, version: o.Version, auth: o.Auth, audit: o.Audit, slots: make(chan struct{}, 1)}).register(settings)

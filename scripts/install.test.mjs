@@ -20,6 +20,8 @@ import { test } from "node:test";
 
 const script = fileURLToPath(new URL("./install.sh", import.meta.url));
 const compose = "services:\n  sublane:\n    image: ${SUBLANE_IMAGE}\n    environment:\n      SUBLANE_DEMO: ${SUBLANE_DEMO:-false}\n";
+const helpers={"install.sh":"#!/bin/bash\necho 'Synthetic installer'\n","updater.sh":"#!/bin/bash\necho 'Synthetic updater'\n"};
+const helperChecksums=Object.entries(helpers).map(([name,body])=>createHash("sha256").update(body).digest("hex")+"  "+name+"\n").join("");
 
 function fixture(t, mode = "", api = {}, portTool = "ss") {
   const deployment = mode === "legacy-demo"
@@ -84,8 +86,8 @@ if (command === 'curl') {
     const body = url.endsWith('/SHA256SUMS')
       ? (mode === 'bad-checksum' ? '0'.repeat(64) : ${JSON.stringify(checksum)}) + '  docker.compose.yaml\\n'
         + (mode === 'bad-checksum' || mode === 'bad-binary-checksum' ? '0'.repeat(64) : process.env.INSTALL_TEST_ARCHIVE_CHECKSUM)
-        + '  ' + process.env.INSTALL_TEST_ARCHIVE_NAME + '\\n'
-      : ${JSON.stringify(deployment)};
+        + '  ' + process.env.INSTALL_TEST_ARCHIVE_NAME + '\\n' + (mode === 'bad-helper-checksum' ? ${JSON.stringify(helperChecksums)}.replace(/^[a-f0-9]{64}/,'0'.repeat(64)) : ${JSON.stringify(helperChecksums)})
+      : ${JSON.stringify(helpers)}[url.split('/').at(-1)] ?? ${JSON.stringify(deployment)};
     fs.writeFileSync(output, body);
   }
 } else if (command === 'docker') {
@@ -212,6 +214,79 @@ function assertDataPreserved(f) {
   assert.equal(readFileSync(join(f.target, "Caddyfile"), "utf8"), f.snapshot.Caddyfile);
   assert.equal(existsSync(join(f.target, ".update-lock")), false);
 }
+
+for(const runtime of ["docker","binary"]){
+  test(runtime+" web updates install a verified host worker and a mailbox without exposing the Docker socket",t=>{
+    const f=existing(t,runtime,"","synthetic gateway");
+    writeFileSync(join(f.target,f.settings),f.snapshot[f.settings].replace("SUBLANE_DEMO=true","SUBLANE_DEMO=false"));
+    const result=install(f,["--update","--enable-updates","--dir",f.target,"--non-interactive"]);
+    assert.equal(result.status,0,result.stderr);
+    const privateDir=join(f.target,".updater");
+    assert.equal(readFileSync(join(privateDir,"install.sh"),"utf8"),helpers["install.sh"]);
+    assert.equal(readFileSync(join(privateDir,"updater.sh"),"utf8"),helpers["updater.sh"]);
+    assert.equal(statSync(privateDir).mode&0o777,0o700);
+    assert.equal(statSync(join(privateDir,"mailbox")).mode&0o777,0o777);
+    const unit=readFileSync(join(privateDir,"updater-sublane-synthetic.service"),"utf8");
+    assert.match(unit,/Restart=on-failure/);
+    assert.ok(unit.includes(`"${realpathSync(privateDir)}/updater.sh" --run "${realpathSync(f.target)}"`));
+    assert.ok(f.calls().some(call=>call.command==="systemctl"&&call.args.includes("enable")&&call.args.includes("updater-sublane-synthetic.service")));
+    if(runtime==="docker"){
+      const overlay=readFileSync(join(privateDir,"compose.yaml"),"utf8");
+      assert.match(overlay,/SUBLANE_UPDATE_DIR: \/run\/sublane-updates/);
+      assert.ok(overlay.includes(JSON.stringify(join(realpathSync(f.target),".updater","mailbox"))));
+      assert.equal(overlay.includes("docker.sock"),false);
+      assert.ok(f.calls().some(call=>call.command==="docker"&&call.args.includes(join(realpathSync(privateDir),"compose.yaml"))&&call.args.includes("up")));
+    }else assert.match(readFileSync(join(f.target,"sublane.env"),"utf8"),/SUBLANE_UPDATE_DIR=.*\.updater\/mailbox/);
+    assertDataPreserved(f);
+  });
+}
+
+test("web update setup rejects unsafe worker paths and corrupt helpers before replacing files",t=>{
+  for(const mode of ["symlink","bad-helper-checksum"]){
+    const f=existing(t,"docker",mode==="symlink"?"":mode);
+    writeFileSync(join(f.target,f.settings),f.snapshot[f.settings].replace("SUBLANE_DEMO=true","SUBLANE_DEMO=false"));
+    const saved=readFileSync(join(f.target,f.settings),"utf8");
+    if(mode==="symlink")symlinkSync(f.root,join(f.target,".updater"));
+    const result=install(f,["--update","--enable-updates","--non-interactive"]);
+    assert.notEqual(result.status,0);
+    assert.equal(readFileSync(join(f.target,f.settings),"utf8"),saved);
+    assert.equal(f.calls().some(call=>call.command==="docker"&&call.args.includes("up")),false);
+  }
+});
+
+test("Docker updates reject customized or symlinked host-worker overlays",t=>{
+  for(const link of [false,true]){
+    const f=existing(t);const privateDir=join(f.target,".updater");mkdirSync(privateDir);
+    if(link)symlinkSync(join(f.target,"docker.compose.yaml"),join(privateDir,"compose.yaml"));
+    else writeFileSync(join(privateDir,"compose.yaml"),"services:\n  sublane:\n    volumes: [./another-data:/data]\n");
+    const result=install(f,["--update","--version","1.2.3","--non-interactive"]);
+    assert.notEqual(result.status,0);
+    assert.equal(readFileSync(join(f.target,".env"),"utf8"),f.snapshot[".env"]);
+    assert.equal(f.calls().some(call=>call.command==="docker"&&call.args.includes("up")),false);
+  }
+});
+
+test("a new web-update installation canonicalizes parent symlinks and retains its generated overlay on later updates",t=>{
+  const f=fixture(t);const actual=join(f.root,"actual");mkdirSync(actual);
+  const alias=join(f.root,"alias");symlinkSync(actual,alias);
+  const target=join(alias,"gateway");
+  const result=install(f,["--version","1.2.3","--dir",target,"--runtime","docker","--enable-updates","--non-interactive"]);
+  assert.equal(result.status,0,result.stderr);
+  const overlay=readFileSync(join(target,".updater","compose.yaml"),"utf8");
+  assert.ok(overlay.includes(JSON.stringify(realpathSync(join(target,".updater","mailbox")))));
+  const update=install(f,["--update","--version","1.2.3","--dir",target,"--non-interactive"]);
+  assert.equal(update.status,0,update.stderr);
+});
+
+test("enabling binary web updates replaces an empty or obsolete mailbox setting",t=>{
+  const f=existing(t,"binary");
+  writeFileSync(join(f.target,f.settings),f.snapshot[f.settings].replace("SUBLANE_DEMO=true","SUBLANE_DEMO=false")+"SUBLANE_UPDATE_DIR=\n");
+  const result=install(f,["--update","--version","1.2.3","--enable-updates","--non-interactive"]);
+  assert.equal(result.status,0,result.stderr);
+  const settings=readFileSync(join(f.target,f.settings),"utf8");
+  assert.equal(settings.split("\n").filter(line=>line.startsWith("SUBLANE_UPDATE_DIR=")).length,1);
+  assert.ok(settings.includes("SUBLANE_UPDATE_DIR="+join(realpathSync(f.target),".updater","mailbox")));
+});
 
 test("updates an existing Docker deployment to the latest release while preserving its identity and settings", (t) => {
   const f = existing(t);

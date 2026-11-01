@@ -28,6 +28,7 @@ import (
 	"github.com/murongg/SubLane/internal/tenants"
 	"github.com/murongg/SubLane/internal/timezone"
 	"github.com/murongg/SubLane/internal/turnstile"
+	"github.com/murongg/SubLane/internal/updates"
 	"github.com/murongg/SubLane/internal/upstream"
 	"github.com/murongg/SubLane/internal/versions"
 	"github.com/murongg/SubLane/web"
@@ -176,7 +177,9 @@ func run() error {
 	if cfg.MetricsToken != "" {
 		telemetry = &metrics.Collector{}
 	}
-	registry := &tenantRegistry{metrics: telemetry, ctx: ctx, db: db, vault: cipher, auth: authentication,
+	softwareUpdates := updates.New(version, cfg.UpdateDir, nil)
+	defer softwareUpdates.Close()
+	registry := &tenantRegistry{updates: softwareUpdates, metrics: telemetry, ctx: ctx, db: db, vault: cipher, auth: authentication,
 		turnstile: loginVerification,
 		alerts:    notifications,
 		tenants:   tenancy, provider: provider, pricing: priceCatalog, versions: codexVersions, grokVersions: grokVersions, claudeVersions: claudeVersions, timeZone: timeZone,

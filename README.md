@@ -61,6 +61,8 @@ Docker mode requires Docker Compose; binary mode requires Linux and a working sy
 
 The script installs the latest stable release, or the newest prerelease if no stable release exists, in `./sublane`. Docker mode uses a named volume; binary mode uses a private data directory and systemd user service. For an existing script-managed installation, it offers an update in interactive mode; pass `--update --dir ./sublane` to update explicitly while preserving settings and data. Export and verify a backup before updating. For options, generated proxy files, HTTPS and upgrades, see the [deployment guide](https://sublane.dev/docs/deployment).
 
+Add `--enable-updates` on a supported Linux installation to enable **System settings → Software updates** through a separate host worker. See [web updates](https://sublane.dev/docs/deployment#web-updates) for prerequisites and one-time setup.
+
 ## Development
 
 Requires Go 1.26+, Node.js 24 and pnpm 9.12.2.

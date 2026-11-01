@@ -61,6 +61,8 @@ Docker 模式需要 Docker Compose；二进制模式需要 Linux 和可用的 sy
 
 脚本会在 `./sublane` 安装最新正式版，没有正式版时使用最新预发布版。Docker 模式使用数据卷；二进制模式使用私有数据目录和 systemd 用户服务。交互模式遇到脚本安装的已有实例时会提供更新选项；也可以传入 `--update --dir ./sublane` 明确更新，并保留配置和数据。更新前请导出并验证备份。自定义参数、代理配置、HTTPS 和升级步骤见[部署文档](https://sublane.dev/docs/zh/deployment)。
 
+受支持的 Linux 安装可添加 `--enable-updates`，通过独立宿主机进程启用「系统设置 → 软件更新」。前置条件和首次配置见[网页更新](https://sublane.dev/docs/zh/deployment#网页更新)。
+
 ## 本地开发
 
 需要 Go 1.26+、Node.js 24、pnpm 9.12.2。

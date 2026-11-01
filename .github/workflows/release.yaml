@@ -102,14 +102,15 @@ jobs:
       - name: Upload binaries, deployment files and checksums
         run: |
           cp docker.compose.yaml release-assets/docker.compose.yaml
+          cp scripts/install.sh scripts/updater.sh release-assets/
           (
             cd release-assets
-            sha256sum "sublane_${VERSION}_linux_amd64.tar.gz" "sublane_${VERSION}_linux_arm64.tar.gz" docker.compose.yaml > SHA256SUMS
+            sha256sum "sublane_${VERSION}_linux_amd64.tar.gz" "sublane_${VERSION}_linux_arm64.tar.gz" docker.compose.yaml install.sh updater.sh > SHA256SUMS
           )
           gh release upload "$TAG" \
             "release-assets/sublane_${VERSION}_linux_amd64.tar.gz" \
             "release-assets/sublane_${VERSION}_linux_arm64.tar.gz" \
-            release-assets/docker.compose.yaml release-assets/SHA256SUMS --clobber
+            release-assets/docker.compose.yaml release-assets/install.sh release-assets/updater.sh release-assets/SHA256SUMS --clobber
       - name: Promote only the newest stable tag
         id: channel
         run: |

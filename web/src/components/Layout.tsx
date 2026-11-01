@@ -83,6 +83,7 @@ const navigation = [
           { to: '/admin/settings/timezone', label: 'timeZoneTitle' },
           { to: '/admin/settings/turnstile', label: 'turnstileTitle' },
           { to: '/admin/settings/clients', label: 'clientVersionsTitle' },
+          { to: '/admin/settings/updates', label: 'updatesTitle' },
           { to: '/admin/settings/backup', label: 'backupTitle' },
         ],
       },

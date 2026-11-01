@@ -1,4 +1,39 @@
 export const en = {
+  updatesTitle: 'Software updates',
+  updatesDescription:
+    'Check official SubLane releases and update this instance. Only the platform owner can install updates.',
+  updateCurrent: 'Current version',
+  updateLatest: 'Latest stable release',
+  updateCheck: 'Check for updates',
+  updateInstall: 'Update to {{version}}',
+  updateConfirmTitle: 'Update SubLane',
+  updateConfirmDescription:
+    'Install {{version}} and restart SubLane? Active requests may be interrupted. Export and verify a backup first. Reinstalling an older version cannot undo database migrations.',
+  updateBackupConfirm: 'I have exported and verified a current backup.',
+  updateConfirm: 'Install update',
+  updateDisabled: 'Enable the host updater to install updates from this page.',
+  updateSetup: 'Set up web updates',
+  updateQueued: 'Update queued. Waiting for the host updater.',
+  updateRunning: 'Installing the update. SubLane will restart.',
+  updateSucceeded: 'Update completed. Reload to use the new version.',
+  updateFailed:
+    'The update failed. Check the host updater log before retrying. A migrated database may require restoring a verified backup.',
+  updateInterrupted:
+    'The update was interrupted. Check the installed version and host updater log before continuing.',
+  updateReconnecting: 'Reconnecting to SubLane…',
+  updateReload: 'Reload page',
+  updateNoNew: 'No newer stable release found.',
+  updateCheckFailed:
+    'Could not check stable releases. Check network access to GitHub and try again later.',
+  updateRequestFailed:
+    'Could not confirm the update request. Refresh to check its status before retrying.',
+  updateCooldown: 'Please wait one minute before checking again.',
+  updateReleaseNotes: 'Release notes',
+  updateBuildUnsupported:
+    'This build requires a manual update. Web installation supports stable release builds.',
+  updateWorkerLost:
+    'The host updater is not responding. Check its systemd service on the server.',
+  auditUpdateRequest: 'Requested a software update',
   allocationInitialEditHint:
     'Before the first activation, edit the initial member plan here. Saving keeps its reviewed start time and accounting anchor.',
   allocationReplacePendingHint:

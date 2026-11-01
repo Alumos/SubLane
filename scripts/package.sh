@@ -22,9 +22,10 @@ trap 'rm -rf "$staging"' EXIT
 cp "$binary" "$staging/sublane"
 chmod 755 "$staging/sublane"
 cp LICENSE THIRD_PARTY_NOTICES.md .env.example docker.compose.yaml "$staging/"
+cp scripts/install.sh scripts/updater.sh "$staging/"
 cp -R licenses "$staging/licenses"
 mkdir "$staging/docs"
 cp docs/README.md "$staging/docs/"
 # The tar archive retains the executable bit that Actions artifact ZIPs do not preserve.
-tar -czf "$archive" -C "$staging" sublane LICENSE THIRD_PARTY_NOTICES.md licenses .env.example docker.compose.yaml docs
+tar -czf "$archive" -C "$staging" sublane LICENSE THIRD_PARTY_NOTICES.md licenses .env.example docker.compose.yaml install.sh updater.sh docs
 printf '%s\n' "$archive"

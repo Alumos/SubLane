@@ -13,6 +13,7 @@ export const auditActions: Record<string, keyof typeof en> = {
   'backup.prepare': 'auditBackupPrepare',
   'backup.verify': 'auditBackupVerify',
   'settings.update': 'auditSettingsUpdate',
+  'updates.request': 'auditUpdateRequest',
   'settings.test': 'auditSettingsTest',
   'key.reveal': 'auditKeyReveal',
   'key.create': 'auditKeyCreate',

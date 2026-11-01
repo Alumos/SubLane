@@ -61,6 +61,11 @@ const routes = root.addChildren([
   settings.addChildren([
     createRoute({
       getParentRoute: () => settings,
+      path: 'updates',
+      component: lazyRouteComponent(() => import('@/pages/Updates'), 'Updates'),
+    }),
+    createRoute({
+      getParentRoute: () => settings,
       path: 'turnstile',
       component: lazyRouteComponent(
         () => import('@/pages/System'),
