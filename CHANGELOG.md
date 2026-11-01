@@ -2,6 +2,16 @@
 
 All notable changes are documented here in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.18.0] - 2026-11-01
+
+### Added
+
+- Support resource group rebinding and recovery (#146)
+
+### Fixed
+
+- Omit hidden models from price warnings (#145)
+
 ## [0.17.0] - 2026-10-30
 
 ### Added
@@ -326,6 +336,7 @@ All notable changes are documented here in [Keep a Changelog](https://keepachang
 - Distinguish remaining quota with status colors
 - Restore version-gated model discovery
 
+[0.18.0]: https://github.com/murongg/SubLane/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/murongg/SubLane/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/murongg/SubLane/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/murongg/SubLane/compare/v0.14.0...v0.15.0
