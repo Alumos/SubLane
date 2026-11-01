@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Plus } from 'lucide-react'
+import { Clock3, Plus } from 'lucide-react'
 import {
   schemesOptions,
   availableAllocationPools,
@@ -265,126 +265,137 @@ export function Allocations() {
           </Button>
         </div>
       ) : (
-        <div className="divide-y divide-border rounded-xl border border-border">
+        <div className="overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
           {query.data.schemes.map((s) => (
-            <section
-              key={s.id}
-              className="flex flex-wrap items-center justify-between gap-4 p-5"
-            >
-              <div className="min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="break-words font-medium">{s.name}</h2>
-                  <Status
-                    kind={
-                      s.enabled && s.effective_at <= query.dataUpdatedAt / 1000
-                        ? 'success'
-                        : 'neutral'
-                    }
-                  >
-                    {t(
-                      !s.enabled
-                        ? 'disabled'
-                        : s.effective_at > query.dataUpdatedAt / 1000
-                          ? 'allocationWaiting'
-                          : 'active',
-                    )}
-                  </Status>
-                  <span className="text-sm text-muted-foreground">
-                    {t(modeLabels[s.config.mode])}
-                  </span>
-                </div>
-                <p className="break-words text-sm text-muted-foreground">
-                  {s.group_name} ·{' '}
-                  {s.config.period === 'durations'
-                    ? t('allocationWindowSchedule', {
-                        windows: s.config.windows?.length ?? 0,
-                        zone: timeZone,
-                      })
-                    : s.config.period === 'day'
-                      ? t('allocationDailySchedule', {
-                          time: s.config.reset_time ?? '00:00',
-                          zone: timeZone,
-                        })
-                      : t('allocationMonthlySchedule', {
-                          day: s.config.reset_day ?? 1,
-                          time: s.config.reset_time ?? '00:00',
-                          zone: timeZone,
-                        })}
-                </p>
-                {s.next && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('allocationScheduled', {
-                      mode: t(modeLabels[s.next.config.mode]),
-                      date: date(s.next.effective_at),
-                    })}{' '}
-                    ·{' '}
-                    {s.next.config.period === 'durations'
+            <section key={s.id} className="@container">
+              <div className="flex flex-col gap-4 p-5 @3xl:flex-row @3xl:items-start @3xl:justify-between">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="min-w-0 max-w-full break-words font-medium">
+                      {s.name}
+                    </h2>
+                    <Status
+                      kind={
+                        s.enabled &&
+                        s.effective_at <= query.dataUpdatedAt / 1000
+                          ? 'success'
+                          : 'neutral'
+                      }
+                    >
+                      {t(
+                        !s.enabled
+                          ? 'disabled'
+                          : s.effective_at > query.dataUpdatedAt / 1000
+                            ? 'allocationWaiting'
+                            : 'active',
+                      )}
+                    </Status>
+                    <span className="text-sm text-muted-foreground">
+                      {t(modeLabels[s.config.mode])}
+                    </span>
+                  </div>
+                  <p className="break-words text-sm text-muted-foreground">
+                    {s.group_name} ·{' '}
+                    {s.config.period === 'durations'
                       ? t('allocationWindowSchedule', {
-                          windows: s.next.config.windows?.length ?? 0,
+                          windows: s.config.windows?.length ?? 0,
                           zone: timeZone,
                         })
-                      : s.next.config.period === 'day'
+                      : s.config.period === 'day'
                         ? t('allocationDailySchedule', {
-                            time: s.next.config.reset_time ?? '00:00',
+                            time: s.config.reset_time ?? '00:00',
                             zone: timeZone,
                           })
                         : t('allocationMonthlySchedule', {
-                            day: s.next.config.reset_day ?? 1,
-                            time: s.next.config.reset_time ?? '00:00',
+                            day: s.config.reset_day ?? 1,
+                            time: s.config.reset_time ?? '00:00',
                             zone: timeZone,
                           })}
                   </p>
-                )}
-                {s.effective_at <= query.dataUpdatedAt / 1000 && (
-                  <AllocationPriceWarning
-                    coverage={s.price_coverage}
-                    label={s.next ? t('allocationCurrentPricing') : undefined}
-                    effectiveAt={s.edit_effective_at}
-                  />
-                )}
-                {s.next && (
-                  <AllocationPriceWarning
-                    coverage={s.next.price_coverage}
-                    label={t('allocationScheduledPricing')}
-                    effectiveAt={s.next.effective_at}
-                    timing="scheduled"
-                  />
-                )}
+                  {s.effective_at <= query.dataUpdatedAt / 1000 && (
+                    <AllocationPriceWarning
+                      coverage={s.price_coverage}
+                      label={s.next ? t('allocationCurrentPricing') : undefined}
+                      effectiveAt={s.edit_effective_at}
+                    />
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setViewing(s.id)}
+                  >
+                    {t('allocationView')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={t('allocationEditNamed', { name: s.name })}
+                    onClick={() => {
+                      mutation.reset()
+                      setFormPoolID(s.group_id)
+                      setEditing(s)
+                    }}
+                  >
+                    {t('allocationEdit')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={toggle.isPending}
+                    onClick={() =>
+                      toggle.mutate({ id: s.id, enabled: !s.enabled })
+                    }
+                  >
+                    {t(s.enabled ? 'allocationPause' : 'allocationResume')}
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={toggle.isPending}
-                  onClick={() =>
-                    toggle.mutate({ id: s.id, enabled: !s.enabled })
-                  }
-                >
-                  {t(s.enabled ? 'allocationPause' : 'allocationResume')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setViewing(s.id)}
-                >
-                  {t('allocationView')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  aria-label={t('allocationEditNamed', { name: s.name })}
-                  onClick={() => {
-                    mutation.reset()
-                    setFormPoolID(s.group_id)
-                    setEditing(s)
-                  }}
-                >
-                  {t('allocationEdit')}
-                </Button>
-              </div>
-              {s.next && s.write_conditions && (
-                <div className="pt-3">
-                  <AllocationSchedule scheme={s} onChanged={saved} />
+              {s.next && (
+                <div className="flex flex-col gap-4 border-t border-border bg-muted/30 px-5 py-4 @3xl:flex-row @3xl:items-start @3xl:justify-between">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <Clock3
+                      className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0 space-y-1 break-words text-sm leading-6">
+                      <p className="font-medium">
+                        {t('allocationScheduled', {
+                          mode: t(modeLabels[s.next.config.mode]),
+                          date: date(s.next.effective_at),
+                        })}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {s.next.config.period === 'durations'
+                          ? t('allocationWindowSchedule', {
+                              windows: s.next.config.windows?.length ?? 0,
+                              zone: timeZone,
+                            })
+                          : s.next.config.period === 'day'
+                            ? t('allocationDailySchedule', {
+                                time: s.next.config.reset_time ?? '00:00',
+                                zone: timeZone,
+                              })
+                            : t('allocationMonthlySchedule', {
+                                day: s.next.config.reset_day ?? 1,
+                                time: s.next.config.reset_time ?? '00:00',
+                                zone: timeZone,
+                              })}
+                      </p>
+                      <AllocationPriceWarning
+                        coverage={s.next.price_coverage}
+                        label={t('allocationScheduledPricing')}
+                        effectiveAt={s.next.effective_at}
+                        timing="scheduled"
+                      />
+                    </div>
+                  </div>
+                  {s.write_conditions && (
+                    <div className="min-w-0 @3xl:max-w-md">
+                      <AllocationSchedule scheme={s} onChanged={saved} />
+                    </div>
+                  )}
                 </div>
               )}
             </section>
