@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useRef, useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -389,6 +389,8 @@ function ContentEditor({
   const [rules, setRules] = useState<Draft[]>(() =>
     value.rules.map((rule) => ({ ...rule, draftID: rule.id, pattern: '' })),
   )
+  // Local, monotonic keys work over HTTP and never reuse deleted rows' state.
+  const nextRuleID = useRef(0)
   const save = useAdminMutation({
     userID,
     mutationFn: saveContent,
@@ -447,11 +449,12 @@ function ContentEditor({
                 type="button"
                 variant="outline"
                 disabled={rules.length >= 50}
-                onClick={() =>
+                onClick={() => {
+                  const draftID = `new-${nextRuleID.current++}`
                   setRules((current) => [
                     ...current,
                     {
-                      draftID: crypto.randomUUID(),
+                      draftID,
                       id: '',
                       name: '',
                       kind: 'text',
@@ -459,7 +462,7 @@ function ContentEditor({
                       pattern: '',
                     },
                   ])
-                }
+                }}
               >
                 <Plus className="size-4" aria-hidden="true" />
                 {t('contentAdd')}
