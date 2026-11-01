@@ -2,6 +2,13 @@
 
 All notable changes are documented here in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.18.1] - 2026-11-01
+
+### Fixed
+
+- Clarify allocation card layout (#148)
+- Aggregate hourly activity in the instance time zone (#149)
+
 ## [0.18.0] - 2026-11-01
 
 ### Added
@@ -336,6 +343,7 @@ All notable changes are documented here in [Keep a Changelog](https://keepachang
 - Distinguish remaining quota with status colors
 - Restore version-gated model discovery
 
+[0.18.1]: https://github.com/murongg/SubLane/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/murongg/SubLane/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/murongg/SubLane/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/murongg/SubLane/compare/v0.15.0...v0.16.0
