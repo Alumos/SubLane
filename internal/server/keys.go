@@ -39,6 +39,7 @@ func (h *keyHTTP) register(router chi.Router) {
 		keys.Get("/{id}/models", h.catalog)
 		keys.Get("/{id}/models/availability", h.availability)
 		keys.Patch("/{id}", h.update)
+		keys.Put("/{id}/group", h.rebind)
 	})
 }
 
@@ -166,6 +167,26 @@ func (h *keyHTTP) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key, err := h.service.Update(r.Context(), sessionUser(r).ID, id, apikey.UpdateInput{Name: input.Name, Enabled: *input.Enabled, ExpiresAt: expiry})
+	if err != nil {
+		keyError(w, err)
+		return
+	}
+	writeJSON(w, 200, key)
+}
+
+func (h *keyHTTP) rebind(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil || id <= 0 {
+		keyError(w, apikey.ErrInput)
+		return
+	}
+	var input struct {
+		GroupID int64 `json:"group_id"`
+	}
+	if !decodeJSON(w, r, &input) {
+		return
+	}
+	key, err := h.service.Rebind(r.Context(), sessionUser(r).ID, id, input.GroupID)
 	if err != nil {
 		keyError(w, err)
 		return

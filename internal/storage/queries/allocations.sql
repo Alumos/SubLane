@@ -58,6 +58,11 @@ JOIN effective_group_access access ON access.group_id=s.group_id
 WHERE s.id=? AND access.user_id=? AND s.enabled=1);
 -- name: BindKeyAllocation :exec
 INSERT INTO allocation_keys(key_id,scheme_id) VALUES(?,?);
+-- name: BindExistingAllocationKeys :exec
+INSERT INTO allocation_keys(key_id,scheme_id)
+SELECT k.id,sqlc.arg(scheme_id) FROM api_keys k
+WHERE k.group_id=sqlc.arg(group_id) AND k.user_id=sqlc.arg(user_id) AND k.revoked_at IS NULL
+AND NOT EXISTS(SELECT 1 FROM allocation_keys ak WHERE ak.key_id=k.id);
 -- name: GetKeyAllocation :one
 SELECT scheme_id FROM allocation_keys WHERE key_id=?;
 -- name: BeginAllocationEntry :exec

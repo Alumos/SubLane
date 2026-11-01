@@ -201,6 +201,8 @@ Personal usage adds an All keys selector beside the period. Load key metadata on
 
 #The full-width Activity by time card sits below the primary usage chart and above expanded detail tables in both usage views. Use a Monday–Sunday by 00–23 UTC grid of borderless square cells, neutral intensity levels, a fainter uncollected/unreported fill, and visible exact values on pointer/touch or keyboard selection. It follows the selected period and metric without changing with the primary breakdown. Keep labels readable and scroll only the grid horizontally on narrow screens; the detail footer remains outside the scrolling area. Show the independent hourly collection start and never present pre-collection or future hours as zero.
 
+Personal key rows offer a compact Change group icon button beside the current group, retaining a localized tooltip and accessible name. Its focused dialog loads only authorized choices, includes allowance names, and explains that the key remains unchanged, existing usage stays in the original group, and switching requires a new conversation. A missing allowance binding has its own status and a Restore access action with confirmation; unavailable membership instead provides administrator guidance. Keep loading, retry, pending, failure and persistent success feedback explicit. New allowance forms explain automatic binding of selected members’ existing unrevoked keys and loss of access for excluded members before saving.
+
 ## Motion
 
 Keep motion limited to state changes, the sidebar transition, and loading feedback. Respect `prefers-reduced-motion`. There are no entrance animations or looping decorative effects.

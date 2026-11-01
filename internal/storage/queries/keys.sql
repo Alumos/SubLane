@@ -66,3 +66,10 @@ AND (last_used_at IS NULL OR last_used_at <= sqlc.arg(threshold));
 -- name: UpdateKey :exec
 UPDATE api_keys SET name=sqlc.arg(name),enabled=sqlc.arg(enabled),expires_at=sqlc.narg(expires_at)
 WHERE id=sqlc.arg(id) AND user_id=sqlc.arg(user_id) AND revoked_at IS NULL;
+
+-- name: RebindKeyGroup :exec
+UPDATE api_keys SET group_id=sqlc.arg(group_id)
+WHERE id=sqlc.arg(id) AND user_id=sqlc.arg(user_id) AND revoked_at IS NULL;
+
+-- name: ClearKeyAllocation :exec
+DELETE FROM allocation_keys WHERE key_id=sqlc.arg(key_id);

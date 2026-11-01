@@ -119,6 +119,9 @@ func auditTarget(r *http.Request) (string, string, string) {
 			if tail == "" && r.Method == "PATCH" {
 				action = "key.update"
 			}
+			if tail == "group" && r.Method == "PUT" {
+				action = "key.update"
+			}
 			if tail == "secret" && r.Method == "POST" {
 				action = "key.reveal"
 			}

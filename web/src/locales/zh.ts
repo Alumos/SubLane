@@ -399,7 +399,7 @@ export const zh: Record<keyof typeof en, string> = {
   allocationRatioAmountRule:
     '每位成员获得所选周期内内部 USD 总预算的对应比例。',
   allocationExclusiveHint:
-    '请使用专用资源组，并先将其账号从其他所有资源组移除。添加用量分配后，资源组及池内账号固定；该资源组原有的未绑定 Key 将停止工作。',
+    '请使用专用资源组，并先将其账号从其他所有资源组移除。添加用量分配后，资源组及组内资源固定。',
   allocationMembers: '成员分配',
   allocationBlankHint: '先勾选要分配的成员，再为每位已选成员填写额度或比例。',
   allocationFor: '{{name}} 的额度',
@@ -1422,11 +1422,29 @@ export const zh: Record<keyof typeof en, string> = {
   poolAccountCount: '{{count}} 个资源',
   keyEmptyPoolWarning:
     '此资源组还没有订阅账号。现在创建的密钥需要等账号加入池后才能发起请求。',
-  keyGroupHint:
-    '此密钥只能使用所选资源组。换池时先创建新密钥、更新客户端，再撤销旧密钥。',
+  keyGroupHint: '此密钥只能使用所选资源组。之后可更换资源组，无需更换密钥。',
   noAvailableGroups: '当前空间没有可用资源组。请创建资源组，或联系管理员授权。',
   groupAccessChanged: '资源组权限已变化，请重新选择可用资源组后重试。',
   keyGroupUnavailable: '资源组不可用',
+  keyAllocationRequired: '需要关联用量分配',
+  keyAllocationHint: '此资源组已启用用量分配，关联后即可继续使用原密钥。',
+  keyRestoreUnavailable:
+    '请联系工作空间管理员，将你加入已生效的用量分配，或选择其他资源组。',
+  restoreKey: '恢复使用',
+  restoreKeyNamed: '恢复使用 {{name}}',
+  restoreKeyDescription:
+    '将此密钥关联到“{{name}}”当前的用量分配。原密钥及客户端配置保持不变。',
+  keyRestoredNotice: '“{{name}}”已恢复使用。',
+  changeKeyGroup: '更换资源组',
+  changeKeyGroupNamed: '更换 {{name}} 的资源组',
+  changeKeyGroupDescription:
+    '选择当前工作空间内你有权使用的资源组，密钥值保持不变。后续请求使用新资源组及其用量分配，历史用量保留在原资源组。切换后请开启新对话。',
+  keyGroupChangedNotice: '已更新“{{name}}”的资源组。',
+  keyGroupChangeFailed: '无法更新资源组，请重试。',
+  keyGroupUnavailableHint:
+    '所选资源组或用量分配已不可用，请刷新选项或联系管理员。',
+  allocationExistingKeysHint:
+    '保存时，会将所选成员在此资源组中已有且未撤销的密钥关联到本方案，密钥值和客户端配置保持不变。未加入方案的成员，其已有密钥将无法继续使用此资源组。',
   keyGroupName: '资源组：{{name}}',
   chooseGroup: '选择资源组',
   clientGuideAction: '接入指南',

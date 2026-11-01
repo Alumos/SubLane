@@ -8,6 +8,7 @@ import { createAppRouter } from '@/router'
 import { authOptions } from '@/lib/auth'
 import * as queries from '@/lib/query'
 import { memberAuthenticated } from '@/test/fixtures'
+import { i18n } from '@/lib/i18n'
 
 const secret = 'sl_' + 'x'.repeat(43)
 const metadata = {
@@ -99,6 +100,150 @@ function open() {
     />,
   )
 }
+
+it('restores an existing key through its allowance without disclosing or replacing its secret', async () => {
+  let value = {
+    ...metadata,
+    group_access: 'blocked',
+    allocation_required: true,
+    can_restore: true,
+  }
+  const fetch = vi.fn((url: string, init?: RequestInit) => {
+    if (url === '/api/auth/state')
+      return Promise.resolve(response(memberAuthenticated))
+    if (url === '/api/keys/1/group' && init?.method === 'PUT') {
+      expect(JSON.parse(String(init.body))).toEqual({ group_id: 1 })
+      value = {
+        ...value,
+        group_access: 'allowed',
+        allocation_required: false,
+        can_restore: false,
+      }
+      return Promise.resolve(response(value))
+    }
+    return Promise.resolve(response({ keys: [value], next_cursor: 0 }))
+  })
+  vi.stubGlobal('fetch', fetch)
+  const user = userEvent.setup()
+  open()
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Restore access for Synthetic laptop',
+    }),
+  )
+  const dialog = await screen.findByRole('dialog', { name: 'Restore access' })
+  expect(
+    within(dialog).getByText(/Your key and client configuration stay the same/),
+  ).toBeTruthy()
+  await user.click(
+    within(dialog).getByRole('button', { name: 'Restore access' }),
+  )
+  await screen.findByText('Access restored for “Synthetic laptop”.')
+  expect(
+    screen.queryByRole('button', {
+      name: 'Restore access for Synthetic laptop',
+    }),
+  ).toBeNull()
+  expect(fetch.mock.calls.some(([url]) => url.endsWith('/secret'))).toBe(false)
+  expect(screen.queryByDisplayValue(secret)).toBeNull()
+  await act(() => i18n.changeLanguage('zh'))
+  expect(screen.getByText('“Synthetic laptop”已恢复使用。')).toBeTruthy()
+  await act(() => i18n.changeLanguage('en'))
+})
+
+it('lets a member choose an authorized resource group and retains a rejected selection for retry', async () => {
+  let value = { ...metadata }
+  let reject = true
+  const fetch = vi.fn((url: string, init?: RequestInit) => {
+    if (url === '/api/auth/state')
+      return Promise.resolve(response(memberAuthenticated))
+    if (url === '/api/keys/groups')
+      return Promise.resolve(
+        response({
+          groups: [
+            { id: 1, name: 'Default', account_count: 1 },
+            {
+              id: 2,
+              name: 'Synthetic destination',
+              account_count: 1,
+              scheme_id: 7,
+              scheme_name: 'Synthetic allowance',
+            },
+          ],
+        }),
+      )
+    if (url === '/api/keys/1/group' && init?.method === 'PUT') {
+      expect(JSON.parse(String(init.body))).toEqual({ group_id: 2 })
+      if (reject) {
+        reject = false
+        return Promise.resolve(
+          new Response(JSON.stringify({ error: 'group_unavailable' }), {
+            status: 403,
+          }),
+        )
+      }
+      value = { ...value, group_id: 2, group_name: 'Synthetic destination' }
+      return Promise.resolve(response(value))
+    }
+    return Promise.resolve(response({ keys: [value], next_cursor: 0 }))
+  })
+  vi.stubGlobal('fetch', fetch)
+  const user = userEvent.setup()
+  open()
+  await user.click(
+    await screen.findByRole('button', {
+      name: 'Change resource group for Synthetic laptop',
+    }),
+  )
+  const dialog = await screen.findByRole('dialog', { name: 'Change group' })
+  await user.click(
+    await within(dialog).findByRole('button', { name: 'Resource group' }),
+  )
+  await user.click(
+    await screen.findByRole('menuitemradio', { name: /Synthetic destination/ }),
+  )
+  await user.click(within(dialog).getByRole('button', { name: 'Save changes' }))
+  await within(dialog).findByRole('alert')
+  expect(screen.getByRole('dialog')).toBe(dialog)
+  await user.click(within(dialog).getByRole('button', { name: 'Save changes' }))
+  await screen.findByText('Resource group updated for “Synthetic laptop”.')
+  expect(await screen.findByText('Group: Synthetic destination')).toBeTruthy()
+  expect(fetch.mock.calls.some(([url]) => url.endsWith('/secret'))).toBe(false)
+})
+
+it('explains when an unbound key needs an administrator instead of offering an unusable recovery action', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) =>
+      Promise.resolve(
+        response(
+          url === '/api/auth/state'
+            ? memberAuthenticated
+            : {
+                keys: [
+                  {
+                    ...metadata,
+                    group_access: 'blocked',
+                    allocation_required: true,
+                    can_restore: false,
+                  },
+                ],
+                next_cursor: 0,
+              },
+        ),
+      ),
+    ),
+  )
+  open()
+  await screen.findByText(
+    /Ask a workspace administrator to include you in an active allowance/,
+  )
+  expect(
+    screen.queryByRole('button', {
+      name: 'Restore access for Synthetic laptop',
+    }),
+  ).toBeNull()
+})
 
 it('resets pagination in both directions and keeps filtered pages in separate caches', async () => {
   const calls: string[] = []

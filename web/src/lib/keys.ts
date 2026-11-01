@@ -13,6 +13,8 @@ const keySchema = z.object({
   group_id: z.number().int().positive(),
   group_name: z.string().min(1),
   group_access: z.enum(['allowed', 'blocked']),
+  allocation_required: z.boolean().optional(),
+  can_restore: z.boolean().optional(),
   name: z.string().min(1).max(256),
   prefix: z.string().min(1).max(20),
   created_at: z.number().int().nonnegative(),
@@ -95,8 +97,16 @@ export function keyState(value: APIKey, now: number) {
   if (value.revoked_at !== null) return 'revoked'
   if (value.expires_at !== null && value.expires_at <= now) return 'keyExpired'
   if (!value.enabled) return 'keyPaused'
+  if (value.allocation_required) return 'keyAllocationRequired'
   if (value.group_access !== 'allowed') return 'keyGroupUnavailable'
   return 'active'
+}
+
+export function rebindKey({ id, group_id }: { id: number; group_id: number }) {
+  return request(`/api/keys/${id}/group`, keySchema, {
+    method: 'PUT',
+    body: JSON.stringify({ group_id }),
+  })
 }
 
 export type ExpiryChoice = 'keep' | 'never' | '7' | '30' | '90'

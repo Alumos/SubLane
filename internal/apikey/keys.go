@@ -33,20 +33,22 @@ var (
 const maxActiveKeys = 20
 
 type Key struct {
-	ID          int64  `json:"id"`
-	GroupID     int64  `json:"group_id"`
-	GroupName   string `json:"group_name"`
-	GroupAccess string `json:"group_access"`
-	Name        string `json:"name"`
-	Prefix      string `json:"prefix"`
-	CreatedAt   int64  `json:"created_at"`
-	LastUsedAt  *int64 `json:"last_used_at"`
-	RevokedAt   *int64 `json:"revoked_at"`
-	Enabled     bool   `json:"enabled"`
-	ExpiresAt   *int64 `json:"expires_at"`
-	Copyable    bool   `json:"copyable"`
-	SchemeID    int64  `json:"scheme_id"`
-	SchemeName  string `json:"scheme_name"`
+	ID                 int64  `json:"id"`
+	GroupID            int64  `json:"group_id"`
+	GroupName          string `json:"group_name"`
+	GroupAccess        string `json:"group_access"`
+	Name               string `json:"name"`
+	Prefix             string `json:"prefix"`
+	CreatedAt          int64  `json:"created_at"`
+	LastUsedAt         *int64 `json:"last_used_at"`
+	RevokedAt          *int64 `json:"revoked_at"`
+	Enabled            bool   `json:"enabled"`
+	ExpiresAt          *int64 `json:"expires_at"`
+	Copyable           bool   `json:"copyable"`
+	SchemeID           int64  `json:"scheme_id"`
+	SchemeName         string `json:"scheme_name"`
+	AllocationRequired bool   `json:"allocation_required"`
+	CanRestore         bool   `json:"can_restore"`
 }
 type UpdateInput struct {
 	Name      string `json:"name"`
@@ -236,25 +238,19 @@ func (s *Service) List(ctx context.Context, userID int64, filter Filter) (Page, 
 	if err != nil {
 		return page, err
 	}
-	// Release the snapshot before allowance lookups use the database connection.
-	if err := tx.Commit(); err != nil {
-		return page, err
-	}
 	if int64(len(rows)) > page.PageSize {
 		rows = rows[:page.PageSize]
 		page.NextCursor = rows[len(rows)-1].ID
 	}
+	// Group changes and allowance recovery must be described from the same snapshot as the key metadata.
 	for _, row := range rows {
-		key := Key(row)
-		if _, err := allocations.KeyScheme(ctx, s.queries, key.ID, userID, key.GroupID, s.now().Unix()); err != nil {
-			if !errors.Is(err, allocations.ErrUnavailable) {
-				return page, err
-			}
-			key.GroupAccess = "blocked"
+		key, err := describeKey(ctx, q, keyValue(db.GetKeyRow(row)), userID, s.now().Unix())
+		if err != nil {
+			return page, err
 		}
 		page.Keys = append(page.Keys, key)
 	}
-	return page, nil
+	return page, tx.Commit()
 }
 
 var ErrInactive = errors.New("api_key_inactive")
@@ -317,7 +313,11 @@ func (s *Service) Update(ctx context.Context, userID, keyID int64, input UpdateI
 		return Key{}, err
 	}
 	row.Name, row.Enabled, row.ExpiresAt = input.Name, input.Enabled, input.ExpiresAt
-	return Key(row), tx.Commit()
+	key, err := describeKey(ctx, q, keyValue(row), userID, s.now().Unix())
+	if err != nil {
+		return Key{}, err
+	}
+	return key, tx.Commit()
 }
 func (s *Service) Revoke(ctx context.Context, userID, keyID int64) (Key, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -344,7 +344,7 @@ func (s *Service) Revoke(ctx context.Context, userID, keyID int64) (Key, error) 
 		}
 		row.RevokedAt = &now
 	}
-	return Key(row), tx.Commit()
+	return keyValue(row), tx.Commit()
 }
 
 func (s *Service) Authenticate(ctx context.Context, secret string) (Principal, error) {

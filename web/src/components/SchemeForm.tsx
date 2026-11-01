@@ -1136,6 +1136,11 @@ function SchemeFields({
           <h3 className="text-base font-semibold">
             {t('allocationSectionActivation')}
           </h3>
+          {!scheme && (
+            <p className="text-sm leading-6 text-muted-foreground">
+              {t('allocationExistingKeysHint')}
+            </p>
+          )}
           {scheme && !applyNow && !initialPending && (
             <p className="text-sm leading-6 text-muted-foreground">
               {t('allocationNextHint')}

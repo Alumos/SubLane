@@ -477,6 +477,12 @@ func (s *Service) SaveScheme(ctx context.Context, id int64, in SchemeInput) (Sch
 	if _, err := appendRevision(ctx, q, id, effective, effective, in.Config); err != nil {
 		return Scheme{}, err
 	}
+	// Bind paused and expired keys too, without changing their lifecycle; later activation must still enforce the allowance.
+	for _, member := range in.Config.Members {
+		if err := q.BindExistingAllocationKeys(ctx, db.BindExistingAllocationKeysParams{SchemeID: id, GroupID: in.GroupID, UserID: member.UserID}); err != nil {
+			return Scheme{}, err
+		}
+	}
 	if err := audit.Record(ctx, q, "allocation.save", "allocation", audit.ID(id)); err != nil {
 		return Scheme{}, err
 	}

@@ -297,6 +297,24 @@ func (q *Queries) BeginAllocationEntry(ctx context.Context, arg BeginAllocationE
 	return err
 }
 
+const bindExistingAllocationKeys = `-- name: BindExistingAllocationKeys :exec
+INSERT INTO allocation_keys(key_id,scheme_id)
+SELECT k.id,?1 FROM api_keys k
+WHERE k.group_id=?2 AND k.user_id=?3 AND k.revoked_at IS NULL
+AND NOT EXISTS(SELECT 1 FROM allocation_keys ak WHERE ak.key_id=k.id)
+`
+
+type BindExistingAllocationKeysParams struct {
+	SchemeID int64
+	GroupID  int64
+	UserID   int64
+}
+
+func (q *Queries) BindExistingAllocationKeys(ctx context.Context, arg BindExistingAllocationKeysParams) error {
+	_, err := q.db.ExecContext(ctx, bindExistingAllocationKeys, arg.SchemeID, arg.GroupID, arg.UserID)
+	return err
+}
+
 const bindKeyAllocation = `-- name: BindKeyAllocation :exec
 INSERT INTO allocation_keys(key_id,scheme_id) VALUES(?,?)
 `

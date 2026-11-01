@@ -432,7 +432,7 @@ export const en = {
   allocationRatioAmountRule:
     'Each member receives their percentage of the total internal USD budget for the selected period.',
   allocationExclusiveHint:
-    'Use a dedicated group and remove its accounts from every other group first. After adding an allowance, the group and its account membership stay fixed. Existing unbound keys for this group stop working.',
+    'Use a dedicated group and remove its accounts from every other group first. After adding an allowance, the group and its resource membership stay fixed.',
   allocationMembers: 'Member allowances',
   allocationBlankHint:
     'Select members who should receive this allowance, then enter a limit or percentage for each selected member.',
@@ -1566,12 +1566,32 @@ export const en = {
   keyEmptyPoolWarning:
     'This group has no resources. A new key cannot serve requests until a resource is added.',
   keyGroupHint:
-    'This key can only use the selected group. To switch groups, create a new key, update your client, then revoke the old key.',
+    'This key can only use the selected group. You can change its group later without replacing the key.',
   noAvailableGroups:
     'No resource groups are available. Create one or ask an administrator for access.',
   groupAccessChanged:
     'Group access has changed. Select an available group and try again.',
   keyGroupUnavailable: 'Group unavailable',
+  keyAllocationRequired: 'Link allowance',
+  keyAllocationHint:
+    'This group now uses an allowance. Link this key to continue using it.',
+  keyRestoreUnavailable:
+    'Ask a workspace administrator to include you in an active allowance, or choose another resource group.',
+  restoreKey: 'Restore access',
+  restoreKeyNamed: 'Restore access for {{name}}',
+  restoreKeyDescription:
+    'Link this key to the current allowance for “{{name}}”. Your key and client configuration stay the same.',
+  keyRestoredNotice: 'Access restored for “{{name}}”.',
+  changeKeyGroup: 'Change group',
+  changeKeyGroupNamed: 'Change resource group for {{name}}',
+  changeKeyGroupDescription:
+    'Choose a resource group you can use in this workspace. Your key stays the same. Subsequent requests use the new group and its allowance; existing usage stays in its original group. Start a new conversation after switching.',
+  keyGroupChangedNotice: 'Resource group updated for “{{name}}”.',
+  keyGroupChangeFailed: 'Could not update the resource group. Try again.',
+  keyGroupUnavailableHint:
+    'The selected group or allowance is no longer available. Refresh the choices or contact an administrator.',
+  allocationExistingKeysHint:
+    'Saving links the selected members’ existing, unrevoked keys in this resource group to this allowance. Key values and client settings stay the same. Existing keys of members outside the allowance will lose access to this group.',
   keyGroupName: 'Group: {{name}}',
   chooseGroup: 'Choose a resource group',
   clientGuideAction: 'Setup guide',

@@ -19,6 +19,7 @@ import { CCSwitchImport } from '@/components/CCSwitchImport'
 import { MagpieImport } from '@/components/MagpieImport'
 import { RevokeKey } from '@/components/RevokeKey'
 import { EditKey } from '@/components/EditKey'
+import { KeyGroup } from '@/components/KeyGroup'
 import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/Button'
 import { formatInstanceDate, useTimeZone } from '@/lib/timezone'
@@ -39,6 +40,10 @@ function KeyManager({ userID }: { userID: number }) {
     useTablePagination()
   const [includeRevoked, setIncludeRevoked] = useState(false)
   const [revokedName, setRevokedName] = useState('')
+  const [bindingNotice, setBindingNotice] = useState<{
+    restored: boolean
+    name: string
+  } | null>(null)
   const query = useQuery({
     ...keyOptions(client, userID, page, includeRevoked, pageSize),
     placeholderData: keepPreviousData,
@@ -57,6 +62,8 @@ function KeyManager({ userID }: { userID: number }) {
       client.invalidateQueries({ queryKey: ['keys', userID] }),
       client.invalidateQueries({ queryKey: ['connection', userID] }),
       client.invalidateQueries({ queryKey: ['system'] }),
+      client.invalidateQueries({ queryKey: ['model-catalog', userID] }),
+      client.invalidateQueries({ queryKey: ['model-availability', userID] }),
     ])
   }
   const dates = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
@@ -77,6 +84,7 @@ function KeyManager({ userID }: { userID: number }) {
             userID={userID}
             onCreated={() => {
               setRevokedName('')
+              setBindingNotice(null)
               changePage(1)
               return invalidate()
             }}
@@ -112,6 +120,16 @@ function KeyManager({ userID }: { userID: number }) {
       {revokedName && (
         <p role="status" className="break-words text-sm text-success">
           {t('keyRevokedNotice', { name: revokedName })}
+        </p>
+      )}
+      {bindingNotice && (
+        <p role="status" className="break-words text-sm text-success">
+          {t(
+            bindingNotice.restored
+              ? 'keyRestoredNotice'
+              : 'keyGroupChangedNotice',
+            { name: bindingNotice.name },
+          )}
         </p>
       )}
       {query.isPending ? (
@@ -180,11 +198,22 @@ function KeyManager({ userID }: { userID: number }) {
                 <tr key={key.id}>
                   <td className="min-w-48 max-w-64 px-5 py-4">
                     <p className="break-words font-medium">{key.name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t('keyGroupName', {
-                        name: key.group_name,
-                      })}
-                    </p>
+                    <div className="mt-1 flex items-start gap-1">
+                      <p className="min-w-0 break-words text-xs text-muted-foreground">
+                        {t('keyGroupName', {
+                          name: key.group_name,
+                        })}
+                      </p>
+                      <KeyGroup
+                        value={key}
+                        userID={userID}
+                        onSaved={async () => {
+                          setRevokedName('')
+                          setBindingNotice({ restored: false, name: key.name })
+                          await invalidate()
+                        }}
+                      />
+                    </div>
                     <CopyKey
                       key={String(key.copyable)}
                       value={key}
@@ -198,20 +227,49 @@ function KeyManager({ userID }: { userID: number }) {
                       />
                     </div>
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="min-w-56 px-5 py-4">
                     <Status
                       kind={
                         keyState(key, now) === 'active'
                           ? 'success'
-                          : ['keyExpired', 'keyGroupUnavailable'].includes(
-                                keyState(key, now),
-                              )
+                          : [
+                                'keyExpired',
+                                'keyGroupUnavailable',
+                                'keyAllocationRequired',
+                              ].includes(keyState(key, now))
                             ? 'warning'
                             : 'neutral'
                       }
                     >
                       {t(keyState(key, now))}
                     </Status>
+                    {keyState(key, now) === 'keyAllocationRequired' && (
+                      <div className="max-w-64">
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                          {t(
+                            key.can_restore
+                              ? 'keyAllocationHint'
+                              : 'keyRestoreUnavailable',
+                          )}
+                        </p>
+                        {key.can_restore && (
+                          <KeyGroup
+                            value={key}
+                            userID={userID}
+                            restore
+                            onSaved={async () => {
+                              setRevokedName('')
+                              setBindingNotice({
+                                restored: true,
+                                name: key.name,
+                              })
+                              await invalidate()
+                              heading.current?.focus()
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
                     <p
                       className="mt-2 whitespace-nowrap text-xs text-muted-foreground"
                       title={
@@ -259,6 +317,7 @@ function KeyManager({ userID }: { userID: number }) {
                         value={key}
                         onRevoked={() => {
                           setRevokedName(key.name)
+                          setBindingNotice(null)
                           // Keep the remaining usable keys visible after removing a row.
                           changePage(1)
                           return invalidate()

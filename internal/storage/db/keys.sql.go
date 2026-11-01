@@ -35,6 +35,15 @@ func (q *Queries) AuthenticateKey(ctx context.Context, arg AuthenticateKeyParams
 	return i, err
 }
 
+const clearKeyAllocation = `-- name: ClearKeyAllocation :exec
+DELETE FROM allocation_keys WHERE key_id=?1
+`
+
+func (q *Queries) ClearKeyAllocation(ctx context.Context, keyID int64) error {
+	_, err := q.db.ExecContext(ctx, clearKeyAllocation, keyID)
+	return err
+}
+
 const countActiveKeys = `-- name: CountActiveKeys :one
 SELECT count(*) FROM api_keys k JOIN account_groups g ON g.id=k.group_id
 WHERE k.user_id = ?1 AND g.tenant_id=?2 AND k.revoked_at IS NULL
@@ -299,6 +308,22 @@ func (q *Queries) ListKeys(ctx context.Context, arg ListKeysParams) ([]ListKeysR
 		return nil, err
 	}
 	return items, nil
+}
+
+const rebindKeyGroup = `-- name: RebindKeyGroup :exec
+UPDATE api_keys SET group_id=?1
+WHERE id=?2 AND user_id=?3 AND revoked_at IS NULL
+`
+
+type RebindKeyGroupParams struct {
+	GroupID int64
+	ID      int64
+	UserID  int64
+}
+
+func (q *Queries) RebindKeyGroup(ctx context.Context, arg RebindKeyGroupParams) error {
+	_, err := q.db.ExecContext(ctx, rebindKeyGroup, arg.GroupID, arg.ID, arg.UserID)
+	return err
 }
 
 const revokeKey = `-- name: RevokeKey :execrows
