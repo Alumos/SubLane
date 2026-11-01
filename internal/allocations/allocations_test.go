@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -588,6 +589,108 @@ func TestAutomaticPricesSavePricedModelsAndWarnAboutMissingOnes(t *testing.T) {
 	}
 	if _, err := rateFor(scheme.Revision, "synthetic-new"); !errors.Is(err, ErrUnpriced) {
 		t.Fatal("unpriced request should remain blocked", err)
+	}
+}
+
+func TestPriceCoverageIgnoresHiddenModels(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		config Config
+		limit  int64
+	}{
+		{"amount", Config{Mode: "amount", Period: "day"}, 1_000_000},
+		{"ratio", Config{Mode: "ratio", RatioUnit: "amount", Total: 1_000_000, Period: "day"}, 10000},
+		{"windows", Config{Mode: "windows", Period: "durations", Windows: []WindowCondition{{DurationSeconds: 3600, Limit: 1_000_000}}}, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, conn, user, account := fixture(t)
+			ctx := context.Background()
+			if _, err := conn.Exec(`UPDATE accounts SET models_snapshot = ? WHERE id = ?`,
+				`{"models":["synthetic-priced","synthetic-stale","synthetic-new","synthetic-hidden-priced","synthetic-hidden-new"],"hidden_models":["synthetic-hidden-priced","synthetic-hidden-new"],"updated_at":1,"source":"synthetic"}`, account); err != nil {
+				t.Fatal(err)
+			}
+			price := pricing.Price{Input: 1_000_000, Output: 2_000_000}
+			manager := NewWithPricing(conn, pricing.NewStatic(map[string]pricing.Price{
+				"synthetic-priced": price, "synthetic-stale": price, "synthetic-hidden-priced": price,
+			}))
+			now := time.Date(2030, 4, 15, 12, 0, 0, 0, time.UTC).Unix()
+			manager.now = func() time.Time { return unix(now) }
+			tc.config.Members = []Share{{UserID: user, Limit: tc.limit}}
+			input := SchemeInput{Name: "Synthetic hidden coverage", GroupID: 2, Enabled: true, Config: tc.config}
+			assertCoverage := func(coverage PriceCoverage, missing []string) {
+				t.Helper()
+				if !slices.Equal(coverage.UncoveredModels, []string{"synthetic-new"}) || !slices.Equal(coverage.MissingCatalogPrices, missing) {
+					t.Fatalf("coverage must include only visible models: %+v", coverage)
+				}
+			}
+			scheme, err := manager.SaveScheme(ctx, 0, input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertCoverage(scheme.PriceCoverage, nil)
+			manager.pricing = pricing.NewStatic(map[string]pricing.Price{"synthetic-priced": price})
+			updated, err := manager.SaveScheme(ctx, scheme.ID, conditioned(t, manager, scheme.ID, input))
+			if err != nil || updated.Next == nil {
+				t.Fatal("could not schedule updated prices", updated, err)
+			}
+			assertCoverage(updated.PriceCoverage, []string{"synthetic-stale"})
+			assertCoverage(updated.Next.PriceCoverage, []string{"synthetic-stale"})
+			listed, err := manager.Schemes(ctx)
+			if err != nil || len(listed) != 1 || listed[0].Next == nil {
+				t.Fatal("could not read current and scheduled coverage", listed, err)
+			}
+			assertCoverage(listed[0].PriceCoverage, []string{"synthetic-stale"})
+			assertCoverage(listed[0].Next.PriceCoverage, []string{"synthetic-stale"})
+			for _, at := range []int64{now, updated.Next.EffectiveAt} {
+				if _, err := Check(ctx, db.New(conn), scheme.ID, user, 2, account, "synthetic-hidden-priced", at, time.UTC); err != nil {
+					t.Fatal("hidden model lost its saved price", err)
+				}
+				for _, model := range []string{"synthetic-new", "synthetic-hidden-new"} {
+					request := Request{ID: "synthetic-unpriced", SchemeID: scheme.ID, UserID: user, GroupID: 2, AccountID: account, Model: model, StartedAt: at}
+					if err := Begin(ctx, db.New(conn), request, at, time.UTC); !errors.Is(err, ErrUnpriced) {
+						t.Fatalf("unpriced %s request must remain blocked: %v", model, err)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestPriceCoverageKeepsModelsVisibleOnAnyAllowedAccount(t *testing.T) {
+	manager := NewWithPricing(nil, pricing.NewStatic(map[string]pricing.Price{}))
+	for _, visibleAllowed := range []bool{false, true} {
+		for _, visibleFirst := range []bool{false, true} {
+			t.Run(fmt.Sprintf("visible allowed %t first %t", visibleAllowed, visibleFirst), func(t *testing.T) {
+				catalog := poolModelCatalog{policy: groups.ModelPolicy{Restricted: true, Models: []string{"codex/synthetic-shared"}}}
+				if visibleAllowed {
+					catalog.policy.Models = append(catalog.policy.Models, "claude/synthetic-shared")
+				}
+				providers := []string{"codex", "claude"}
+				if visibleFirst {
+					slices.Reverse(providers)
+				}
+				seen := map[string]bool{}
+				for _, provider := range providers {
+					snapshot := accounts.Catalog{Models: []string{"synthetic-shared"}, UpdatedAt: 1, Source: "synthetic"}
+					if provider == "codex" {
+						snapshot.HiddenModels = []string{"synthetic-shared"}
+					}
+					raw, err := json.Marshal(snapshot)
+					if err != nil {
+						t.Fatal(err)
+					}
+					catalog.addAccount(provider, raw, 0, seen)
+				}
+				coverage := manager.priceCoverage(catalog, Revision{Config: Config{Mode: "amount"}})
+				var want []string
+				if visibleAllowed {
+					want = []string{"synthetic-shared"}
+				}
+				if !slices.Equal(coverage.UncoveredModels, want) {
+					t.Fatalf("coverage did not respect allowed visible routes: %+v", coverage)
+				}
+			})
+		}
 	}
 }
 

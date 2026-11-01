@@ -498,9 +498,10 @@ func (s *Service) SaveScheme(ctx context.Context, id int64, in SchemeInput) (Sch
 }
 
 type poolModelCatalog struct {
-	policy      groups.ModelPolicy
-	models      []string
-	unavailable bool
+	policy        groups.ModelPolicy
+	models        []string
+	visibleModels map[string]bool
+	unavailable   bool
 }
 
 // Both loaders sort models after all accounts are aggregated; this step only deduplicates.
@@ -510,10 +511,20 @@ func (catalog *poolModelCatalog) addAccount(provider string, snapshot []byte, re
 		catalog.unavailable = true
 		return
 	}
+	if catalog.visibleModels == nil {
+		catalog.visibleModels = map[string]bool{}
+	}
 	for _, model := range accountCatalog.Models {
 		_, native := groups.SplitModel(model)
 		// The policy needs the account provider to enforce provider-scoped allowlists.
-		if catalog.policy.Allows(provider+"/"+native) && !seen[native] {
+		if !catalog.policy.Allows(provider + "/" + native) {
+			continue
+		}
+		// A permitted visible route wins even when another account listed this model as hidden first.
+		if !slices.Contains(accountCatalog.HiddenModels, model) {
+			catalog.visibleModels[native] = true
+		}
+		if !seen[native] {
 			seen[native] = true
 			catalog.models = append(catalog.models, native)
 		}
@@ -599,6 +610,10 @@ func (s *Service) priceCoverage(catalog poolModelCatalog, revision Revision) Pri
 		saved[rate.Model] = true
 	}
 	for _, model := range catalog.models {
+		// Hidden models still need saved prices for admission; only their coverage warnings are omitted.
+		if !catalog.visibleModels[model] {
+			continue
+		}
 		if !saved[model] {
 			coverage.UncoveredModels = append(coverage.UncoveredModels, model)
 		} else if _, ok := s.pricing.Lookup(model); !ok {
