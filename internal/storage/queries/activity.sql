@@ -14,7 +14,7 @@ SELECT value FROM settings WHERE key='usage.hourly.started_at';
 -- name: PruneHourlyUsage :execrows
 DELETE FROM usage_hourly WHERE rowid IN (SELECT old.rowid FROM usage_hourly old WHERE old.hour<sqlc.arg(before_hour) LIMIT 500);
 
--- Reports span at most 90 UTC days, so 2160 rows retain every persisted hourly bucket.
+-- Allow UTC edge dates and offset changes in a 90-local-calendar-day report.
 -- name: ListHourlyActivity :many
 SELECT h.hour,
 CAST(SUM(h.requests) AS INTEGER) AS requests,
@@ -24,4 +24,4 @@ CAST(SUM(h.input_reported) AS INTEGER) AS input_reported,
 CAST(SUM(h.output_reported) AS INTEGER) AS output_reported
 FROM usage_hourly h
 WHERE h.tenant_id=sqlc.arg(tenant_id) AND h.hour>=sqlc.arg(from_hour) AND h.hour<sqlc.arg(to_hour) AND (h.user_id=sqlc.arg(user_id) OR sqlc.arg(user_id)=0) AND (h.key_id=sqlc.arg(key_id) OR sqlc.arg(key_id)=0)
-GROUP BY h.hour ORDER BY h.hour LIMIT 2160;
+GROUP BY h.hour ORDER BY h.hour LIMIT 2208;

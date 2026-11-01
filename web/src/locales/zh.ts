@@ -609,7 +609,7 @@ export const zh: Record<keyof typeof en, string> = {
   workspaceSettingsDescription: '设置仅影响当前工作空间。',
   timeZoneTitle: '时区',
   timeZoneDescription:
-    '控制整个实例显示的时间、时段分布和每日／每月用量分配的重置时间。每日用量汇总仍按 UTC 日期划分。',
+    '控制整个实例显示的时间、用量统计日期和每日／每月用量分配的重置时间。',
   timeZoneLabel: '实例时区',
   timeZoneHint: '请输入 IANA 时区，例如 Asia/Shanghai。保存后立即生效。',
   timeZonePreview: '当前时间：{{time}}（{{zone}}）',
@@ -904,7 +904,7 @@ export const zh: Record<keyof typeof en, string> = {
   noUsageSummary: '该周期暂无用量',
   noUsageSummaryHint: '开始统计后，模型尝试结束时会显示在这里。',
   usageRetentionNote:
-    '按 UTC 日期汇总并保留 90 天，不受近期请求记录清理影响。分类汇总显示前 20 项。这些数据用于运行统计，不代表计费金额。',
+    '按 {{zone}} 日期汇总并保留 90 天，不受近期请求记录清理影响。分类汇总显示前 20 项。这些数据用于运行统计，不代表计费金额。',
   gatewayAttentionDescription: '请验证连接或重新授权订阅账号，让网关恢复可用。',
   gatewayChecking: '正在检查网关…',
   needsConnection: '未接入',

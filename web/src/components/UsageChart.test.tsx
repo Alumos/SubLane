@@ -21,6 +21,24 @@ const row: Statistic = {
   cached_reported: 0,
 }
 
+it('formats daily buckets in the report time zone', () => {
+  render(
+    <UsageChart
+      rows={[
+        { ...row, id: String(Date.parse('2030-01-02T00:00:00+08:00') / 1000) },
+      ]}
+      metric="requests"
+      daily
+      label="Daily · Requests"
+      timeZone="Asia/Shanghai"
+    />,
+  )
+  fireEvent.keyDown(screen.getByRole('img'), { key: 'Home' })
+  expect(
+    within(screen.getByRole('status')).getByText(/Jan 2, 2030/),
+  ).toBeTruthy()
+})
+
 it('exposes daily values to the keyboard and leaves missing token reports unknown', () => {
   render(
     <UsageChart

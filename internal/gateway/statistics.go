@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/murongg/SubLane/internal/accounts"
 	"github.com/murongg/SubLane/internal/apikey"
 	"github.com/murongg/SubLane/internal/storage/db"
+	"github.com/murongg/SubLane/internal/timezone"
 )
 
 type Metrics struct {
@@ -34,6 +36,7 @@ type Statistic struct {
 	Metrics
 }
 type Statistics struct {
+	TimeZone      string      `json:"time_zone"`
 	FromDay       int64       `json:"from_day"`
 	ToDay         int64       `json:"to_day"`
 	TrackingSince int64       `json:"tracking_since"`
@@ -64,9 +67,15 @@ func (s *Service) statistics(ctx context.Context, userID, days, keyID int64) (St
 	if days != 1 && days != 7 && days != 30 && days != 90 {
 		return Statistics{}, accounts.ErrInput
 	}
-	now := s.now().UTC()
-	today := now.Truncate(24 * time.Hour).Unix()
-	page := Statistics{FromDay: today - (days-1)*86400, ToDay: today + 86400, Days: []Statistic{}, Members: []Statistic{}, Models: []Statistic{}, Groups: []Statistic{}}
+	location := s.location()
+	now := s.now()
+	windows := calendarWindows(now, days, location)
+	// Legacy daily counters are exact only when every requested civil day matches a UTC day.
+	legacy := true
+	for _, window := range windows {
+		legacy = legacy && window[0]%86400 == 0 && window[1]-window[0] == 86400
+	}
+	page := Statistics{TimeZone: location.String(), FromDay: windows[0][0], ToDay: windows[len(windows)-1][1], Days: []Statistic{}, Members: []Statistic{}, Models: []Statistic{}, Groups: []Statistic{}}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return page, err
@@ -83,11 +92,21 @@ func (s *Service) statistics(ctx context.Context, userID, days, keyID int64) (St
 		}
 	}
 	// All summaries use one snapshot; concurrent completions cannot make totals and breakdowns disagree.
-	page.Activity, err = readActivity(ctx, q, s.tenantID, userID, keyID, page.FromDay, page.ToDay, now.Unix(), s.location())
+	page.Activity, err = readActivity(ctx, q, s.tenantID, userID, keyID, page.FromDay, page.ToDay, now.Unix(), location)
 	if err != nil {
 		return page, err
 	}
-	coverage, err := q.GetStatisticsCoverage(ctx)
+	var coverage string
+	if legacy {
+		coverage, err = q.GetStatisticsCoverage(ctx)
+	} else {
+		coverage, err = q.GetMinuteCoverage(ctx)
+	}
+	if err != nil {
+		return page, err
+	}
+	// Invalid coverage must fail explicitly instead of presenting an unobserved period as zero.
+	page.TrackingSince, err = strconv.ParseInt(coverage, 10, 64)
 	if err != nil {
 		return page, err
 	}
@@ -96,14 +115,29 @@ func (s *Service) statistics(ctx context.Context, userID, days, keyID int64) (St
 		if err != nil {
 			return page, err
 		}
+		keySince, err := strconv.ParseInt(coverage, 10, 64)
+		if err != nil {
+			return page, err
+		}
+		if legacy {
+			page.TrackingSince = keySince
+		} else {
+			page.TrackingSince = max(page.TrackingSince, keySince)
+		}
 	}
-	// Parse metadata explicitly: SQLite CAST would turn invalid text into a misleading zero.
-	page.TrackingSince, err = strconv.ParseInt(coverage, 10, 64)
-	if err != nil {
-		return page, err
+	from := page.FromDay
+	if !legacy {
+		// The first collected minute may be partial; its counters contain only new observations.
+		from = max(from, page.TrackingSince-page.TrackingSince%60)
 	}
 	var totals db.GetStatisticsTotalsRow
-	if userID == 0 {
+	if !legacy && userID == 0 {
+		minuteTotals, readErr := q.GetMinuteStatisticsTotals(ctx, db.GetMinuteStatisticsTotalsParams{TenantID: s.tenantID, FromDay: from, ToDay: page.ToDay})
+		totals, err = db.GetStatisticsTotalsRow(minuteTotals), readErr
+	} else if !legacy {
+		minuteTotals, readErr := q.GetUserMinuteStatisticsTotals(ctx, db.GetUserMinuteStatisticsTotalsParams{TenantID: s.tenantID, FromDay: from, ToDay: page.ToDay, UserID: userID, KeyID: keyID})
+		totals, err = db.GetStatisticsTotalsRow(minuteTotals), readErr
+	} else if userID == 0 {
 		totals, err = q.GetStatisticsTotals(ctx, db.GetStatisticsTotalsParams{TenantID: s.tenantID, FromDay: page.FromDay, ToDay: page.ToDay})
 	} else {
 		personal, readErr := q.GetUserStatisticsTotals(ctx, db.GetUserStatisticsTotalsParams{TenantID: s.tenantID, FromDay: page.FromDay, ToDay: page.ToDay, UserID: userID, KeyID: keyID})
@@ -117,7 +151,29 @@ func (s *Service) statistics(ctx context.Context, userID, days, keyID int64) (St
 		var rows []db.ListStatisticsRow
 		var err error
 		// Separate SQL keeps the personal equality filter usable by SQLite's user/day index.
-		if userID == 0 {
+		if !legacy {
+			bounds := [][2]int64{{page.FromDay, page.ToDay}}
+			if dimension == "day" {
+				bounds = windows
+			}
+			encoded, encodeErr := json.Marshal(bounds)
+			if encodeErr != nil {
+				return nil, encodeErr
+			}
+			if userID == 0 {
+				minutes, readErr := q.ListMinuteStatistics(ctx, db.ListMinuteStatisticsParams{TenantID: s.tenantID, Dimension: dimension, FromDay: from, ToDay: page.ToDay, Windows: string(encoded), MaxRows: maxRows})
+				err = readErr
+				for _, row := range minutes {
+					rows = append(rows, db.ListStatisticsRow(row))
+				}
+			} else {
+				minutes, readErr := q.ListUserMinuteStatistics(ctx, db.ListUserMinuteStatisticsParams{TenantID: s.tenantID, Dimension: dimension, FromDay: from, ToDay: page.ToDay, Windows: string(encoded), MaxRows: maxRows, UserID: userID, KeyID: keyID})
+				err = readErr
+				for _, row := range minutes {
+					rows = append(rows, db.ListStatisticsRow(row))
+				}
+			}
+		} else if userID == 0 {
 			rows, err = q.ListStatistics(ctx, db.ListStatisticsParams{TenantID: s.tenantID, Dimension: dimension, FromDay: page.FromDay, ToDay: page.ToDay, MaxRows: maxRows})
 		} else {
 			personal, readErr := q.ListUserStatistics(ctx, db.ListUserStatisticsParams{TenantID: s.tenantID, Dimension: dimension, FromDay: page.FromDay, ToDay: page.ToDay, UserID: userID, KeyID: keyID, MaxRows: maxRows})
@@ -143,11 +199,12 @@ func (s *Service) statistics(ctx context.Context, userID, days, keyID int64) (St
 	for _, d := range daily {
 		byDay[d.ID] = d
 	}
-	for day := page.FromDay; day < page.ToDay; day += 86400 {
+	for _, window := range windows {
+		day := window[0]
 		id := strconv.FormatInt(day, 10)
 		row := byDay[id]
 		row.ID = id
-		row.Name = time.Unix(day, 0).UTC().Format("2006-01-02")
+		row.Name = time.Unix(day, 0).In(location).Format("2006-01-02")
 		page.Days = append(page.Days, row)
 	}
 	if page.Models, err = list("model", 20); err != nil {
@@ -180,6 +237,7 @@ func recordStatistics(ctx context.Context, q *db.Queries, r db.RecordRequestPara
 	if tracked == 0 {
 		model = "[other models]"
 	}
+	// Preserve UTC history; the minute counters below supply local calendar boundaries.
 	entry := db.RecordStatisticsParams{Day: r.StartedAt - r.StartedAt%86400, UserID: r.UserID, KeyID: r.KeyID, GroupID: r.GroupID, Provider: r.Provider, Model: model, Requests: 1, DurationMs: r.DurationMs}
 	switch r.Outcome {
 	case "success":
@@ -212,5 +270,31 @@ func recordStatistics(ctx context.Context, q *db.Queries, r db.RecordRequestPara
 	if err := q.RecordStatistics(ctx, entry); err != nil {
 		return err
 	}
+	if err := q.RecordMinuteStatistics(ctx, db.RecordMinuteStatisticsParams{
+		Minute: r.StartedAt - r.StartedAt%60, UserID: entry.UserID, KeyID: entry.KeyID, GroupID: entry.GroupID,
+		Provider: entry.Provider, Model: entry.Model, Requests: entry.Requests, Completed: entry.Completed,
+		Incomplete: entry.Incomplete, Errors: entry.Errors, Canceled: entry.Canceled, Rejected: entry.Rejected,
+		DurationMs: entry.DurationMs, InputTokens: entry.InputTokens, OutputTokens: entry.OutputTokens, CachedTokens: entry.CachedTokens,
+		InputReported: entry.InputReported, OutputReported: entry.OutputReported, CachedReported: entry.CachedReported,
+	}); err != nil {
+		return err
+	}
 	return q.RecordHourlyUsage(ctx, db.RecordHourlyUsageParams{GroupID: r.GroupID, Hour: r.StartedAt - r.StartedAt%3600, UserID: r.UserID, KeyID: r.KeyID, Requests: entry.Requests, InputTokens: entry.InputTokens, OutputTokens: entry.OutputTokens, InputReported: entry.InputReported, OutputReported: entry.OutputReported})
+}
+
+func calendarWindows(now time.Time, days int64, location *time.Location) [][2]int64 {
+	local := now.In(location)
+	date := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1-int(days))
+	windows := make([][2]int64, 0, days)
+	for i := int64(0); i < days; i++ {
+		next := date.AddDate(0, 0, 1)
+		start := timezone.DayStart(date.Year(), date.Month(), date.Day(), location).Unix()
+		end := timezone.DayStart(next.Year(), next.Month(), next.Day(), location).Unix()
+		// A civil date skipped by a time-zone transition has no reporting window.
+		if start < end {
+			windows = append(windows, [2]int64{start, end})
+		}
+		date = next
+	}
+	return windows
 }

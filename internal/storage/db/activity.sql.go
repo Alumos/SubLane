@@ -29,7 +29,7 @@ CAST(SUM(h.input_reported) AS INTEGER) AS input_reported,
 CAST(SUM(h.output_reported) AS INTEGER) AS output_reported
 FROM usage_hourly h
 WHERE h.tenant_id=?1 AND h.hour>=?2 AND h.hour<?3 AND (h.user_id=?4 OR ?4=0) AND (h.key_id=?5 OR ?5=0)
-GROUP BY h.hour ORDER BY h.hour LIMIT 2160
+GROUP BY h.hour ORDER BY h.hour LIMIT 2208
 `
 
 type ListHourlyActivityParams struct {
@@ -49,7 +49,7 @@ type ListHourlyActivityRow struct {
 	OutputReported int64
 }
 
-// Reports span at most 90 UTC days, so 2160 rows retain every persisted hourly bucket.
+// Allow UTC edge dates and offset changes in a 90-local-calendar-day report.
 func (q *Queries) ListHourlyActivity(ctx context.Context, arg ListHourlyActivityParams) ([]ListHourlyActivityRow, error) {
 	rows, err := q.db.QueryContext(ctx, listHourlyActivity,
 		arg.TenantID,

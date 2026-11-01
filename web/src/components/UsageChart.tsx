@@ -23,11 +23,13 @@ export function UsageChart({
   metric,
   daily,
   label,
+  timeZone = 'UTC',
 }: {
   rows: Statistic[]
   metric: UsageMetric
   daily: boolean
   label: string
+  timeZone?: string
 }) {
   const { t, i18n } = useTranslation()
   const numbers = new Intl.NumberFormat(i18n.resolvedLanguage ?? 'en')
@@ -54,7 +56,13 @@ export function UsageChart({
     )
   if (daily)
     return (
-      <DailyChart rows={rows} metric={metric} amounts={amounts} label={label} />
+      <DailyChart
+        rows={rows}
+        metric={metric}
+        amounts={amounts}
+        label={label}
+        timeZone={timeZone}
+      />
     )
   const maximum = Math.max(1, ...amounts.map((amount) => amount ?? 0))
   return (
@@ -109,11 +117,13 @@ function DailyChart({
   metric,
   amounts,
   label,
+  timeZone,
 }: {
   rows: Statistic[]
   metric: UsageMetric
   amounts: (number | null)[]
   label: string
+  timeZone: string
 }) {
   const { t, i18n } = useTranslation()
   const help = useId()
@@ -140,11 +150,11 @@ function DailyChart({
   const dates = new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
-    timeZone: 'UTC',
+    timeZone,
   })
   const fullDates = new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
-    timeZone: 'UTC',
+    timeZone,
   })
   const maximum = Math.max(1, ...amounts.map((amount) => amount ?? 0))
   const magnitude = 10 ** Math.floor(Math.log10(maximum / 4))

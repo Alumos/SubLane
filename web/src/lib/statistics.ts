@@ -54,6 +54,7 @@ const activitySchema = z.object({
     ),
 })
 const statisticsSchema = z.object({
+  time_zone: z.string().min(1).max(64),
   from_day: z.number().int(),
   to_day: z.number().int(),
   tracking_since: z.number().int(),
@@ -151,4 +152,12 @@ export function ownLimitOptions(
     queryFn: ({ signal }) =>
       request('/api/me/limits', memberLimitSchema, { signal }),
   })
+}
+
+export function trackedDays(data: Statistics) {
+  // Civil days may contain 23 or 25 hours; the next boundary determines coverage.
+  return data.days.filter(
+    (_, index) =>
+      Number(data.days[index + 1]?.id ?? data.to_day) > data.tracking_since,
+  )
 }

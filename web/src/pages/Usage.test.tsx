@@ -31,6 +31,7 @@ const metrics = {
 }
 const summary = {
   activity: hourlyActivity,
+  time_zone: 'UTC',
   from_day: 1900000000,
   to_day: 1900086400,
   tracking_since: 1900000000,

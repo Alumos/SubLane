@@ -7,6 +7,7 @@ import { useTimeZone } from '@/lib/timezone'
 import type { APIKey } from '@/lib/keys'
 import {
   statisticsOptions,
+  trackedDays,
   ownLimitOptions,
   type UsageScope,
 } from '@/lib/statistics'
@@ -51,7 +52,7 @@ function UsageScopeView({ scope }: { scope: UsageScope }) {
 }
 function UsageReport({ scope, userID }: { scope: UsageScope; userID: number }) {
   const { t, i18n } = useTranslation()
-  const timeZone = useTimeZone()
+  const configuredTimeZone = useTimeZone()
   const client = useQueryClient()
   const [days, setDays] = useState(7)
   // Retain the selected label when its key is on another result page.
@@ -64,6 +65,7 @@ function UsageReport({ scope, userID }: { scope: UsageScope; userID: number }) {
   const query = useQuery(
     statisticsOptions(client, userID, scope, days, selectedKey?.id),
   )
+  const timeZone = query.data?.time_zone ?? configuredTimeZone
   const limits = useQuery(ownLimitOptions(client, userID, scope))
   const number = new Intl.NumberFormat(i18n.resolvedLanguage ?? 'en', {
     maximumFractionDigits: 1,
@@ -74,7 +76,7 @@ function UsageReport({ scope, userID }: { scope: UsageScope; userID: number }) {
   })
   const date = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
     dateStyle: 'medium',
-    timeZone: 'UTC',
+    timeZone,
   })
   const timestamp = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
     dateStyle: 'medium',
@@ -90,11 +92,11 @@ function UsageReport({ scope, userID }: { scope: UsageScope; userID: number }) {
     groups: 'accountGroups',
     members: 'usageMembers',
   } as const
-  const rows =
-    query.data?.[view].filter(
-      (row) =>
-        view !== 'days' || Number(row.id) + 86400 > query.data!.tracking_since,
-    ) ?? []
+  const rows = query.data
+    ? view === 'days'
+      ? trackedDays(query.data)
+      : query.data[view]
+    : []
   const totals = query.data?.totals
   const rowName = (row: Statistic) =>
     view === 'days'
@@ -356,6 +358,7 @@ function UsageReport({ scope, userID }: { scope: UsageScope; userID: number }) {
                     rows={rows.map((row) => ({ ...row, name: rowName(row) }))}
                     metric={metric}
                     daily={view === 'days'}
+                    timeZone={timeZone}
                     label={t(labels[view]) + ' · ' + t(metricLabels[metric])}
                   />
                 </section>
@@ -435,7 +438,7 @@ function UsageReport({ scope, userID }: { scope: UsageScope; userID: number }) {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              {t('usageRetentionNote')}
+              {t('usageRetentionNote', { zone: timeZone })}
             </p>
           </>
         )

@@ -165,25 +165,29 @@ func TestActivityUsesUTCHoursAndSessionOwnershipAcrossWeeks(t *testing.T) {
 }
 
 func TestHourlyWriteFailureRollsBackHistoryAndDailyCounters(t *testing.T) {
-	ctx := context.Background()
-	s, _ := codexGateway(t, transportFunc(func(*http.Request) (*http.Response, error) { return syntheticStream(), nil }))
-	if _, err := s.db.Exec("CREATE TRIGGER fail_hourly BEFORE INSERT ON usage_hourly BEGIN SELECT RAISE(ABORT,'synthetic failure'); END"); err != nil {
-		t.Fatal(err)
-	}
-	r, err := s.Open(ctx, 1, 1, []byte(`{"model":"synthetic-model","input":"synthetic"}`), nil, Responses)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := r.Events(func([]byte) error { return nil }); err != nil {
-		t.Fatal(err)
-	}
-	r.Body.Close()
-	history, err := s.Requests(ctx, RequestFilter{})
-	if err != nil || len(history.Requests) != 0 {
-		t.Fatal("history committed without hourly usage", err)
-	}
-	page, err := s.Statistics(ctx, 7)
-	if err != nil || page.Totals.Requests != 0 {
-		t.Fatal("daily usage committed without hourly usage", err)
+	for _, table := range []string{"usage_hourly", "usage_minutes"} {
+		t.Run(table, func(t *testing.T) {
+			ctx := context.Background()
+			s, _ := codexGateway(t, transportFunc(func(*http.Request) (*http.Response, error) { return syntheticStream(), nil }))
+			if _, err := s.db.Exec("CREATE TRIGGER fail_usage BEFORE INSERT ON " + table + " BEGIN SELECT RAISE(ABORT,'synthetic failure'); END"); err != nil {
+				t.Fatal(err)
+			}
+			r, err := s.Open(ctx, 1, 1, []byte(`{"model":"synthetic-model","input":"synthetic"}`), nil, Responses)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := r.Events(func([]byte) error { return nil }); err != nil {
+				t.Fatal(err)
+			}
+			r.Body.Close()
+			history, err := s.Requests(ctx, RequestFilter{})
+			if err != nil || len(history.Requests) != 0 {
+				t.Fatal("history committed without hourly usage", err)
+			}
+			page, err := s.Statistics(ctx, 7)
+			if err != nil || page.Totals.Requests != 0 {
+				t.Fatal("daily usage committed without hourly usage", err)
+			}
+		})
 	}
 }

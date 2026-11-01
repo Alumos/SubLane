@@ -1,5 +1,5 @@
 import type { RequestRecord } from './requests'
-import type { Metrics, Statistics } from './statistics'
+import { trackedDays, type Metrics, type Statistics } from './statistics'
 
 export function encodeCSV(rows: string[][]) {
   return (
@@ -76,14 +76,13 @@ export function statisticsRows(data: Statistics) {
       'to_day',
       'tracking_since',
       ...columns,
+      'time_zone',
     ],
   ]
   const groups = {
     totals: [{ id: '', name: '', ...data.totals }],
     // Exclude days with no tracking coverage, as the usage view does.
-    days: data.days.filter(
-      (row) => Number(row.id) + 86400 > data.tracking_since,
-    ),
+    days: trackedDays(data),
     models: data.models,
     groups: data.groups,
     members: data.members,
@@ -106,6 +105,7 @@ export function statisticsRows(data: Statistics) {
             return ''
           return String(row[key])
         }),
+        data.time_zone,
       ])
   }
   return rows

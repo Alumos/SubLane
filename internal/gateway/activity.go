@@ -27,6 +27,7 @@ type Activity struct {
 }
 
 func readActivity(ctx context.Context, q *db.Queries, tenantID, userID, keyID, from, to, now int64, location *time.Location) (Activity, error) {
+	precise := activityNeedsMinutes(from, to, location)
 	result := Activity{TimeZone: location.String(), Cells: make([]ActivityCell, 168), ObservedUntil: min(now, to-1)}
 	for i := range result.Cells {
 		result.Cells[i].Weekday = int64(i / 24)
@@ -39,6 +40,17 @@ func readActivity(ctx context.Context, q *db.Queries, tenantID, userID, keyID, f
 	since, err := strconv.ParseInt(coverage, 10, 64)
 	if err != nil {
 		return result, err
+	}
+	if precise {
+		coverage, err := q.GetMinuteCoverage(ctx)
+		if err != nil {
+			return result, err
+		}
+		minuteSince, err := strconv.ParseInt(coverage, 10, 64)
+		if err != nil {
+			return result, err
+		}
+		since = max(since, minuteSince)
 	}
 	if keyID != 0 {
 		coverage, err := q.GetKeyStatisticsCoverage(ctx)
@@ -57,29 +69,71 @@ func readActivity(ctx context.Context, q *db.Queries, tenantID, userID, keyID, f
 	if start > result.ObservedUntil {
 		return result, nil
 	}
-	firstHour := start - start%3600
-	// Count only elapsed/started hourly windows. Pre-migration and future slots are not zero activity.
-	// The first and current hours may be partial; the coverage timestamps expose those bounds.
-	for hour := firstHour; hour <= result.ObservedUntil; hour += 3600 {
-		result.Cells[activityIndex(hour, location)].Samples++
+	step := int64(3600)
+	if precise {
+		step = 60
 	}
-	rows, err := q.ListHourlyActivity(ctx, db.ListHourlyActivityParams{TenantID: tenantID, UserID: userID, KeyID: keyID, FromHour: firstHour, ToHour: result.ObservedUntil - result.ObservedUntil%3600 + 3600})
-	if err != nil {
-		return result, err
+	first := start - start%step
+	// Count distinct observed local-hour occurrences; repeated DST hours remain two samples.
+	previousHour := int64(-1)
+	for stamp := first; stamp <= result.ObservedUntil; stamp += step {
+		local := time.Unix(stamp, 0).In(location)
+		hour := stamp - int64(local.Minute()*60+local.Second())
+		if hour != previousHour {
+			result.Cells[activityIndex(stamp, location)].Samples++
+			previousHour = hour
+		}
 	}
-	for _, row := range rows {
-		cell := &result.Cells[activityIndex(row.Hour, location)]
-		cell.Requests += row.Requests
-		cell.InputTokens += row.InputTokens
-		cell.OutputTokens += row.OutputTokens
-		cell.InputReported += row.InputReported
-		cell.OutputReported += row.OutputReported
+	add := func(stamp, requests, input, output, inputReported, outputReported int64) {
+		cell := &result.Cells[activityIndex(stamp, location)]
+		cell.Requests += requests
+		cell.InputTokens += input
+		cell.OutputTokens += output
+		cell.InputReported += inputReported
+		cell.OutputReported += outputReported
+	}
+	end := result.ObservedUntil - result.ObservedUntil%step + step
+	if precise {
+		rows, err := q.ListMinuteActivity(ctx, db.ListMinuteActivityParams{TenantID: tenantID, UserID: userID, KeyID: keyID, FromMinute: first, ToMinute: end})
+		if err != nil {
+			return result, err
+		}
+		for _, row := range rows {
+			add(row.Minute, row.Requests, row.InputTokens, row.OutputTokens, row.InputReported, row.OutputReported)
+		}
+	} else {
+		rows, err := q.ListHourlyActivity(ctx, db.ListHourlyActivityParams{TenantID: tenantID, UserID: userID, KeyID: keyID, FromHour: first, ToHour: end})
+		if err != nil {
+			return result, err
+		}
+		for _, row := range rows {
+			add(row.Hour, row.Requests, row.InputTokens, row.OutputTokens, row.InputReported, row.OutputReported)
+		}
 	}
 	return result, nil
 }
 
 func activityIndex(hour int64, location *time.Location) int {
-	// UTC buckets are indivisible; use their start and historical offset, including DST changes.
 	stamp := time.Unix(hour, 0).In(location)
 	return (int(stamp.Weekday())+6)%7*24 + stamp.Hour()
+}
+
+func activityNeedsMinutes(from, to int64, location *time.Location) bool {
+	if from%3600 != 0 || to%3600 != 0 {
+		return true
+	}
+	// Preserve historical hourly data whenever every local hour aligns with a stored UTC hour.
+	for stamp := time.Unix(from, 0); stamp.Unix() < to; {
+		local := stamp.In(location)
+		_, offset := local.Zone()
+		if offset%3600 != 0 {
+			return true
+		}
+		_, next := local.ZoneBounds()
+		if next.IsZero() {
+			break
+		}
+		stamp = next
+	}
+	return false
 }

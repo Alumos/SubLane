@@ -190,7 +190,8 @@ func TestFormerProxyCheckArchiveStillRestores(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Keep this archive on its historical schema so restore exercises newer migrations.
-	if _, err := connection.ExecContext(ctx, `DROP TABLE auth_challenges;
+	if _, err := connection.ExecContext(ctx, `DROP TABLE usage_minutes;
+DROP TABLE auth_challenges;
 DROP TABLE passkeys;
 DROP TABLE recovery_codes;
 DROP INDEX users_passkey_handle;
@@ -227,7 +228,7 @@ ALTER TABLE memberships DROP COLUMN max_concurrency;
 ALTER TABLE memberships ADD COLUMN max_concurrency INTEGER NOT NULL DEFAULT 0 CHECK(max_concurrency BETWEEN 0 AND 8);
 ALTER TABLE accounts DROP COLUMN max_concurrency;
 ALTER TABLE accounts ADD COLUMN max_concurrency INTEGER NOT NULL DEFAULT 2 CHECK(max_concurrency BETWEEN 1 AND 8);
-DELETE FROM settings WHERE key='usage.keys.started_at';
+DELETE FROM settings WHERE key IN ('usage.keys.started_at','usage.minutes.started_at');
 DELETE FROM schema_migrations WHERE name >= '006_reasoning_effort.sql';
 INSERT INTO schema_migrations(name) VALUES('004_proxy_checks.sql')`); err != nil {
 		t.Fatal(err)

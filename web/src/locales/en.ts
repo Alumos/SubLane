@@ -664,7 +664,7 @@ export const en = {
   workspaceSettingsDescription: 'Applies only to the current workspace.',
   timeZoneTitle: 'Time zone',
   timeZoneDescription:
-    'Controls displayed timestamps, hourly activity, and daily/monthly resource allowance resets across this instance. Daily usage summaries retain their UTC boundaries.',
+    'Controls displayed timestamps, reporting dates, and daily/monthly resource allowance resets across this instance.',
   timeZoneLabel: 'Instance time zone',
   timeZoneHint:
     'Enter an IANA time zone, such as Asia/Shanghai. Changes take effect immediately.',
@@ -992,7 +992,7 @@ export const en = {
   noUsageSummaryHint:
     'Completed model attempts will appear here after usage collection begins.',
   usageRetentionNote:
-    'UTC daily summaries are retained for 90 days, independently of recent request records. Breakdowns show the top 20 entries. These are operational statistics, not billing totals.',
+    'Daily summaries use {{zone}} calendar dates and are retained for 90 days, independently of recent request records. Breakdowns show the top 20 entries. These are operational statistics, not billing totals.',
   gatewayAttentionDescription:
     'Verify or reauthorize a subscription account to make the gateway available.',
   gatewayChecking: 'Checking gateway…',

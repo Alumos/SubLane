@@ -31,6 +31,11 @@ func TestHistoryReadsDoNotDeleteAndMaintenancePrunesInBatches(t *testing.T) {
 	if _, err := connection.ExecContext(ctx, "INSERT INTO usage_hourly(tenant_id,hour,user_id,requests,input_tokens,output_tokens,input_reported,output_reported) VALUES(1,?,1,1,0,0,0,0)", oldDay); err != nil {
 		t.Fatal(err)
 	}
+	for _, minute := range []int64{oldDay, now.UTC().Truncate(24*time.Hour).Unix() - 90*86400 + 3600} {
+		if _, err := connection.Exec("INSERT INTO usage_minutes(tenant_id,minute,user_id,group_id,provider,model,requests) VALUES(1,?,1,1,'codex','synthetic-model',1)", minute); err != nil {
+			t.Fatal(err)
+		}
+	}
 	for i := 0; i < 1201; i++ {
 		started := now.Add(-8 * 24 * time.Hour).Unix()
 		if i == 1200 {
@@ -62,6 +67,9 @@ func TestHistoryReadsDoNotDeleteAndMaintenancePrunesInBatches(t *testing.T) {
 	}
 	if err := connection.QueryRowContext(ctx, "SELECT count(*) FROM request_records").Scan(&count); err != nil || count != 1 {
 		t.Fatalf("maintenance retention: count=%d err=%v", count, err)
+	}
+	if err := connection.QueryRow("SELECT count(*) FROM usage_minutes").Scan(&count); err != nil || count != 1 {
+		t.Fatal("maintenance lost the first local reporting day or retained expired minutes", count, err)
 	}
 	for _, table := range []string{"usage_daily", "usage_hourly"} {
 		if err := connection.QueryRowContext(ctx, "SELECT count(*) FROM "+table).Scan(&count); err != nil || count != 0 {

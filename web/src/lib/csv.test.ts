@@ -33,12 +33,13 @@ it('exports usage coverage without converting unreported tokens to zero', () => 
   const data = {
     totals: metrics,
     days: [
-      { id: '1900000000', name: '', ...metrics },
       { id: '1899913600', name: '', ...metrics },
+      { id: '1900000000', name: '', ...metrics },
     ],
     models: [],
     members: [],
     groups: [],
+    time_zone: 'UTC',
     from_day: 1900000000,
     to_day: 1900086400,
     tracking_since: 1900000000,
@@ -47,4 +48,20 @@ it('exports usage coverage without converting unreported tokens to zero', () => 
   expect(rows).toHaveLength(3)
   expect(rows[1][rows[0].indexOf('input_tokens')]).toBe('')
   expect(rows[1][rows[0].indexOf('input_reported')]).toBe('0')
+  const start = Date.parse('2030-11-03T04:00:00Z') / 1000
+  const next = Date.parse('2030-11-04T05:00:00Z') / 1000
+  const local = {
+    ...data,
+    time_zone: 'America/New_York',
+    from_day: start,
+    to_day: next + 86400,
+    tracking_since: next - 1800,
+    days: [
+      { id: String(start), name: '2030-11-03', ...metrics },
+      { id: String(next), name: '2030-11-04', ...metrics },
+    ],
+  }
+  const exported = statisticsRows(local)
+  expect(exported.filter((row) => row[0] === 'days')).toHaveLength(2)
+  expect(exported[1][exported[0].indexOf('time_zone')]).toBe('America/New_York')
 })

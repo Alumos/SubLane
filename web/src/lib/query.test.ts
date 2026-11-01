@@ -131,6 +131,7 @@ it('stops usage refetches under an obsolete identity', async () => {
   const options = statisticsOptions(client, authenticated.user.id, 'all', 7)
   client.setQueryData(options.queryKey, {
     activity: hourlyActivity,
+    time_zone: 'UTC',
     from_day: 1900000000,
     to_day: 1900086400,
     tracking_since: 1900000000,
