@@ -68,7 +68,7 @@ func TestInferenceHeaderTimeoutIsIndependentOfMetadata(t *testing.T) {
 }
 
 func TestOAuthExchangeAndRefreshUsePinnedEndpoints(t *testing.T) {
-	idToken := "e30." + base64.RawURLEncoding.EncodeToString([]byte(`{"email":"member@example.test","https://api.openai.com/auth":{"chatgpt_account_id":"upstream-test","chatgpt_plan_type":"plus"}}`)) + ".synthetic"
+	idToken := "e30." + base64.RawURLEncoding.EncodeToString([]byte(`{"email":"member@example.test","https://api.openai.com/auth":{"chatgpt_account_id":"upstream-test","chatgpt_user_id":"synthetic-member","chatgpt_plan_type":"plus"}}`)) + ".synthetic"
 	calls := 0
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
@@ -88,7 +88,11 @@ func TestOAuthExchangeAndRefreshUsePinnedEndpoints(t *testing.T) {
 			t.Error("wrong refresh token")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"access_token": "synthetic-access", "refresh_token": "synthetic-refresh", "id_token": idToken, "expires_in": 3600})
+		tokens := map[string]any{"access_token": "synthetic-access", "refresh_token": "synthetic-refresh", "expires_in": 3600}
+		if calls == 1 {
+			tokens["id_token"] = idToken
+		}
+		json.NewEncoder(w).Encode(tokens)
 	}))
 	defer upstream.Close()
 	client := New()
@@ -101,8 +105,9 @@ func TestOAuthExchangeAndRefreshUsePinnedEndpoints(t *testing.T) {
 	if err != nil || credential.AccountID != "upstream-test" || credential.Email != "member@example.test" || credential.ExpiresAt < time.Now().Unix() {
 		t.Fatal("token exchange failed", err)
 	}
-	if _, err := client.Refresh(context.Background(), credential); err != nil {
-		t.Fatal(err)
+	refreshed, err := client.Refresh(context.Background(), credential)
+	if err != nil || refreshed.IDToken != idToken || refreshed.AccountID != "upstream-test" {
+		t.Fatal("refresh lost member identity or upstream workspace routing", err)
 	}
 }
 

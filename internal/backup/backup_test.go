@@ -2,6 +2,7 @@ package backup
 
 import (
 	"context"
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"testing"
@@ -74,7 +75,8 @@ func TestBackupRoundTripPreservesDataAndRevokesRestoredSessions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	account, err := accounts.New(connection, cipher).Authorize(ctx, "Synthetic account", accounts.Credential{AccountID: "synthetic-subject", AccessToken: "synthetic-access", RefreshToken: "synthetic-refresh", ExpiresAt: time.Now().Add(time.Hour).Unix()}, "")
+	idToken := "e30." + base64.RawURLEncoding.EncodeToString([]byte(`{"https://api.openai.com/auth":{"chatgpt_account_id":"synthetic-subject","chatgpt_user_id":"synthetic-member"}}`)) + ".synthetic"
+	account, err := accounts.New(connection, cipher).Authorize(ctx, "Synthetic account", accounts.Credential{AccountID: "synthetic-subject", AccessToken: "synthetic-access", RefreshToken: "synthetic-refresh", IDToken: idToken, ExpiresAt: time.Now().Add(time.Hour).Unix()}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +130,7 @@ func TestBackupRoundTripPreservesDataAndRevokesRestoredSessions(t *testing.T) {
 		t.Fatal("unexpected provider refresh")
 		return accounts.Credential{}, nil
 	})
-	if err != nil || credential.AccessToken != "synthetic-access" {
+	if err != nil || credential.AccessToken != "synthetic-access" || credential.AccountID != "synthetic-subject" || credential.IDToken != idToken {
 		t.Fatal("credential restore", err)
 	}
 	if got, err := groups.New(restored).Get(ctx, pool.ID); err != nil || len(got.AccountIDs) != 1 {

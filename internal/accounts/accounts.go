@@ -148,38 +148,16 @@ func (s *Service) save(ctx context.Context, name string, credential Credential, 
 	defer s.mu.Unlock()
 	credential.Rejected = false
 	now := s.now().Unix()
-	if credential.Kind() == "openai" {
-		rows, err := s.queries.ListAccounts(ctx, s.tenantID)
-		if err != nil {
-			return Account{}, err
-		}
-		for _, existing := range rows {
-			if existing.Provider != "openai" || existing.ID == replaceID {
-				continue
-			}
-			row, err := s.get(ctx, existing.ID)
-			if err != nil {
-				return Account{}, err
-			}
-			previous, err := s.decrypt(row)
-			if err != nil {
-				return Account{}, err
-			}
-			if previous.BaseURL == credential.BaseURL && previous.AccessToken == credential.AccessToken {
-				return Account{}, ErrDuplicate
-			}
-		}
-	}
 	if replaceID != "" {
 		row, err := s.get(ctx, replaceID)
 		if err != nil {
 			return Account{}, err
 		}
+		previous, err := s.decrypt(row)
+		if err != nil {
+			return Account{}, err
+		}
 		if row.Provider == "openai" && credential.Kind() == "openai" {
-			previous, err := s.decrypt(row)
-			if err != nil {
-				return Account{}, err
-			}
 			// Key rotation retains affinity, but endpoint changes would rebind existing conversations.
 			if previous.BaseURL != credential.BaseURL {
 				return Account{}, ErrIdentity
@@ -193,17 +171,13 @@ func (s *Service) save(ctx context.Context, name string, credential Credential, 
 			credential.AccountID = previous.AccountID
 		}
 		// Existing continuations must never be rebound to a different upstream identity.
-		if row.AccountID != credential.AccountID || row.Provider != credential.Kind() {
+		if !sameIdentity(previous, credential) {
 			return Account{}, ErrIdentity
 		}
 		if proxyID != "" && (row.ProxyID == nil || *row.ProxyID != proxyID) {
 			return Account{}, ErrProxyInput
 		}
 		if credential.Kind() == "claude" {
-			previous, err := s.decrypt(row)
-			if err != nil {
-				return Account{}, err
-			}
 			credential, _, err = prepareClaudeIdentity(credential, claudeDeviceID(previous.Metadata))
 			if err != nil {
 				return Account{}, err
@@ -215,6 +189,9 @@ func (s *Service) save(ctx context.Context, name string, credential Credential, 
 		}
 		defer tx.Rollback()
 		q := s.queries.WithTx(tx)
+		if err := s.checkDuplicate(ctx, q, credential, replaceID); err != nil {
+			return Account{}, err
+		}
 		if err := s.persist(ctx, q, replaceID, credential, status); err != nil {
 			return Account{}, err
 		}
@@ -256,6 +233,9 @@ func (s *Service) save(ctx context.Context, name string, credential Credential, 
 	}
 	defer tx.Rollback()
 	queries := s.queries.WithTx(tx)
+	if err := s.checkDuplicate(ctx, queries, credential, ""); err != nil {
+		return Account{}, err
+	}
 	var selectedProxy *string
 	if proxyID != "" {
 		if _, err := queries.GetProxy(ctx, db.GetProxyParams{ID: proxyID, TenantID: s.tenantID}); errors.Is(err, sql.ErrNoRows) {
@@ -272,7 +252,7 @@ func (s *Service) save(ctx context.Context, name string, credential Credential, 
 	if count >= 100 {
 		return Account{}, ErrLimit
 	}
-	n, err := queries.CreateAccount(ctx, db.CreateAccountParams{ID: id, TenantID: s.tenantID, Provider: credential.Kind(), Name: name, AccountID: credential.AccountID, Email: credential.Email, Plan: credential.Plan, Status: status, Credential: encrypted, ExpiresAt: credential.ExpiresAt, CreatedAt: now, UpdatedAt: now, ProxyID: selectedProxy})
+	n, err := queries.CreateAccount(ctx, db.CreateAccountParams{ID: id, TenantID: s.tenantID, Provider: credential.Kind(), Name: name, AccountID: credential.identity(), Email: credential.Email, Plan: credential.Plan, Status: status, Credential: encrypted, ExpiresAt: credential.ExpiresAt, CreatedAt: now, UpdatedAt: now, ProxyID: selectedProxy})
 	if err != nil {
 		return Account{}, err
 	}
@@ -369,7 +349,7 @@ func (s *Service) persist(ctx context.Context, q *db.Queries, id string, c Crede
 	if err != nil {
 		return err
 	}
-	return q.UpdateAccountCredential(ctx, db.UpdateAccountCredentialParams{ID: id, Credential: encrypted, Email: c.Email, Plan: c.Plan, Status: status, ExpiresAt: c.ExpiresAt, UpdatedAt: s.now().Unix()})
+	return q.UpdateAccountCredential(ctx, db.UpdateAccountCredentialParams{ID: id, AccountID: c.identity(), Credential: encrypted, Email: c.Email, Plan: c.Plan, Status: status, ExpiresAt: c.ExpiresAt, UpdatedAt: s.now().Unix()})
 }
 
 func (s *Service) get(ctx context.Context, id string) (db.Account, error) {
@@ -422,7 +402,11 @@ func (s *Service) decrypt(row db.Account) (Credential, error) {
 		return Credential{}, err
 	}
 	var credential Credential
-	if json.Unmarshal(plaintext, &credential) != nil || credential.AccountID != row.AccountID || credential.Kind() != row.Provider {
+	if json.Unmarshal(plaintext, &credential) != nil || credential.Kind() != row.Provider {
+		return Credential{}, vault.ErrDecrypt
+	}
+	// Older rows contain the workspace ID; credential rotation upgrades only the deduplication key.
+	if row.AccountID != credential.identity() && row.AccountID != credential.AccountID {
 		return Credential{}, vault.ErrDecrypt
 	}
 	return credential, nil

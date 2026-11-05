@@ -224,11 +224,12 @@ func (q *Queries) SetAccountStatus(ctx context.Context, arg SetAccountStatusPara
 }
 
 const updateAccountCredential = `-- name: UpdateAccountCredential :exec
-UPDATE accounts SET credential = ?1, email = ?2, plan = ?3, status = ?4, expires_at = ?5, updated_at = ?6
-WHERE id = ?7
+UPDATE accounts SET account_id = ?1, credential = ?2, email = ?3, plan = ?4, status = ?5, expires_at = ?6, updated_at = ?7
+WHERE id = ?8
 `
 
 type UpdateAccountCredentialParams struct {
+	AccountID  string
 	Credential []byte
 	Email      string
 	Plan       string
@@ -240,6 +241,7 @@ type UpdateAccountCredentialParams struct {
 
 func (q *Queries) UpdateAccountCredential(ctx context.Context, arg UpdateAccountCredentialParams) error {
 	_, err := q.db.ExecContext(ctx, updateAccountCredential,
+		arg.AccountID,
 		arg.Credential,
 		arg.Email,
 		arg.Plan,

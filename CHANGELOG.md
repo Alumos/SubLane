@@ -2,6 +2,12 @@
 
 All notable changes are documented here in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [0.19.2] - 2026-11-05
+
+### Fixed
+
+- Distinguish Codex Team members
+
 ## [0.19.1] - 2026-11-01
 
 ### Fixed
@@ -359,6 +365,7 @@ All notable changes are documented here in [Keep a Changelog](https://keepachang
 - Distinguish remaining quota with status colors
 - Restore version-gated model discovery
 
+[0.19.2]: https://github.com/murongg/SubLane/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/murongg/SubLane/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/murongg/SubLane/compare/v0.18.1...v0.19.0
 [0.18.1]: https://github.com/murongg/SubLane/compare/v0.18.0...v0.18.1

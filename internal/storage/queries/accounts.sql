@@ -18,7 +18,7 @@ VALUES (sqlc.arg(id), sqlc.arg(tenant_id), sqlc.arg(provider), sqlc.arg(name), s
 ON CONFLICT(tenant_id, provider, account_id) DO NOTHING;
 
 -- name: UpdateAccountCredential :exec
-UPDATE accounts SET credential = sqlc.arg(credential), email = sqlc.arg(email), plan = sqlc.arg(plan), status = sqlc.arg(status), expires_at = sqlc.arg(expires_at), updated_at = sqlc.arg(updated_at)
+UPDATE accounts SET account_id = sqlc.arg(account_id), credential = sqlc.arg(credential), email = sqlc.arg(email), plan = sqlc.arg(plan), status = sqlc.arg(status), expires_at = sqlc.arg(expires_at), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id);
 
 -- name: SetAccountEnabled :exec

@@ -85,7 +85,7 @@ func ParseFor(provider string, raw []byte) (Credential, error) {
 		credential.Provider = ""
 		credential.Metadata = nil
 	}
-	// Token claims are used only as display/routing metadata, never as SubLane authentication or roles.
+	// Token claims describe upstream identity and routing, never SubLane authentication or roles.
 	credential.BaseURL = ""
 	claims := tokenClaims(credential.IDToken)
 	if claims.AccountID != "" {
@@ -136,6 +136,28 @@ func (c Credential) validate() error {
 			return ErrInput
 		}
 	}
+	if c.Kind() == "codex" {
+		id, access := tokenClaims(c.IDToken), tokenClaims(c.AccessToken)
+		for _, token := range []claims{id, access} {
+			for _, value := range []string{token.UserID, token.UserAlias, token.Subject} {
+				if len(value) > 256 || strings.IndexFunc(value, unicode.IsControl) >= 0 {
+					return ErrInput
+				}
+			}
+			if token.AccountID != "" && token.AccountID != c.AccountID {
+				return ErrIdentity
+			}
+			if token.UserAlias != "" && token.UserAlias != token.UserID {
+				return ErrIdentity
+			}
+		}
+		if id.UserID != "" && access.UserID != "" && id.UserID != access.UserID {
+			return ErrIdentity
+		}
+		if id.Subject != "" && access.Subject != "" && id.Subject != access.Subject {
+			return ErrIdentity
+		}
+	}
 	return nil
 }
 
@@ -144,8 +166,8 @@ func validToken(value string) bool {
 }
 
 type claims struct {
-	AccountID, Email, Plan, Subject string
-	Expiry                          int64
+	AccountID, UserID, UserAlias, Email, Plan, Subject string
+	Expiry                                             int64
 }
 
 func tokenClaims(token string) claims {
@@ -163,13 +185,18 @@ func tokenClaims(token string) claims {
 		Expiry  int64  `json:"exp"`
 		Auth    struct {
 			AccountID string `json:"chatgpt_account_id"`
+			UserID    string `json:"chatgpt_user_id"`
+			User      string `json:"user_id"`
 			Plan      string `json:"chatgpt_plan_type"`
 		} `json:"https://api.openai.com/auth"`
 	}
 	if json.Unmarshal(raw, &payload) != nil {
 		return claims{}
 	}
-	return claims{Subject: payload.Subject, AccountID: payload.Auth.AccountID, Email: payload.Email, Plan: payload.Auth.Plan, Expiry: payload.Expiry}
+	if payload.Auth.UserID == "" {
+		payload.Auth.UserID = payload.Auth.User
+	}
+	return claims{Subject: payload.Subject, AccountID: payload.Auth.AccountID, UserID: payload.Auth.UserID, UserAlias: payload.Auth.User, Email: payload.Email, Plan: payload.Auth.Plan, Expiry: payload.Expiry}
 }
 
 // parseSubscription accepts the flat credential format exported by CLIProxyAPI. Only credential fields survive import.

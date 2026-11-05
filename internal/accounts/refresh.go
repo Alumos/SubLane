@@ -147,7 +147,7 @@ func (s *Service) prepare(ctx context.Context, id, rejectedToken string, refresh
 }
 
 func validateRefresh(previous, updated Credential, minimumExpiry int64) error {
-	if updated.AccountID != previous.AccountID || updated.Kind() != previous.Kind() {
+	if !sameIdentity(previous, updated) {
 		return ErrIdentity
 	}
 	if err := updated.validate(); err != nil {
