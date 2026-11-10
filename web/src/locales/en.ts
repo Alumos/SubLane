@@ -1160,7 +1160,7 @@ export const en = {
   upstreamBaseURLInvalid:
     'Enter an HTTP or HTTPS base URL without login credentials, query parameters or a fragment.',
   apiUpstreamUsageHint:
-    'Request and token usage is tracked by SubLane. Subscription quota and upstream balances are unavailable for API channels.',
+    'Request and token usage is tracked by SubLane. Upstream quota is shown for OpenCode Go channels; other API channels do not report subscription quota or balances.',
   apiKeyReplacementHint:
     'The upstream rejected this key. Replace the API key, then verify the connection.',
   connectionMethod: 'Connection method',
@@ -1919,4 +1919,29 @@ export const en = {
   requestRouteCooldown: 'Resource or model cooldown',
   requestRouteConcurrency: 'Concurrency capacity',
   requestRouteUnavailable: 'Disabled or unavailable resource',
+  auditGroupDelete: 'Deleted resource group',
+  deleteGroup: 'Delete group',
+  deleteGroupNamed: 'Delete {{name}}',
+  deleteGroupTitle: 'Delete resource group?',
+  deleteGroupDescription:
+    '“{{name}}” will stop routing requests and lose its resources, model policy and member grants. Request history and usage are kept.',
+  groupDeleteInUse:
+    'Active API keys still use this group. Move them to another group or revoke them first.',
+  groupDeleteAllocated:
+    'This group has a resource allowance. Delete the allowance before deleting the group.',
+  groupDeleteMissing: 'This group no longer exists.',
+  groupDeleteFailed: 'The group could not be deleted. Try again.',
+  sessionSticky: 'Session stickiness',
+  sessionStickyHint:
+    'Keeps conversations without a session ID on one resource, using a hash of the opening prompt, and lets subagents prefer their parent’s resource. Unavailable resources still fail over. Improves upstream prompt cache hits.',
+  sessionStickyEnabled: 'Session stickiness on',
+  editChannel: 'Edit channel',
+  channelEditDescription:
+    'Change the name, platform, protocol, endpoint or key. The channel keeps its group assignments, limits and request history.',
+  channelEditPlatformHint:
+    'Changing the endpoint or protocol refreshes the model catalog and requires verifying the connection again.',
+  channelKeyKeepHint:
+    'Leave blank to keep the stored key. The stored key is never shown.',
+  saveChannel: 'Save channel',
+  usageMonthly: 'Monthly limit',
 } satisfies Record<string, string>

@@ -35,6 +35,7 @@ func (h *channelHTTP) register(router chi.Router) {
 		route.Use(h.requireChannel)
 		route.Get("/", h.get)
 		route.Patch("/", h.setEnabled)
+		route.Put("/", h.update)
 		route.Delete("/", h.remove)
 		route.Put("/key", h.rotate)
 		route.Put("/proxy", h.bindProxy)
@@ -46,6 +47,9 @@ func (h *channelHTTP) register(router chi.Router) {
 		route.Get("/models", common.catalog)
 		route.Post("/models/refresh", common.refreshCatalog)
 		route.Post("/models/check", common.checkModel)
+		// Usage is reported only by platforms with a key-authenticated quota endpoint.
+		route.Get("/usage", common.usage)
+		route.Post("/usage/refresh", common.refreshUsage)
 	})
 }
 
@@ -103,6 +107,28 @@ func (h *channelHTTP) save(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	writeJSON(w, status, row)
 	if h.gateway != nil {
+		_, _ = h.gateway.AccountCatalog(r.Context(), row.ID, false)
+	}
+}
+func (h *channelHTTP) update(w http.ResponseWriter, r *http.Request) {
+	var input channels.Input
+	if !decodeJSONLimit(w, r, &input, 32<<10) {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	before, err := h.service.Get(r.Context(), id)
+	if err != nil {
+		channelError(w, err)
+		return
+	}
+	row, err := h.service.Update(r.Context(), id, input)
+	if err != nil {
+		channelError(w, err)
+		return
+	}
+	writeJSON(w, 200, row)
+	// Endpoint and protocol edits invalidate discovery; refresh it like a new connection.
+	if h.gateway != nil && (before.BaseURL != row.BaseURL || before.Protocol != row.Protocol || before.Platform != row.Platform || input.APIKey != "") {
 		_, _ = h.gateway.AccountCatalog(r.Context(), row.ID, false)
 	}
 }

@@ -24,3 +24,5 @@ sql:
             go_type: "bool"
           - column: "account_groups.restricted_models"
             go_type: "bool"
+          - column: "account_groups.session_sticky"
+            go_type: "bool"

@@ -299,6 +299,9 @@ type litePrice struct {
 	Input  *float64 `json:"input_cost_per_token"`
 	Cached *float64 `json:"cache_read_input_token_cost"`
 	Output *float64 `json:"output_cost_per_token"`
+	// Image generation models publish output prices per image token instead of per text token.
+	ImageOutput *float64 `json:"output_cost_per_image_token"`
+	Mode        string   `json:"mode"`
 }
 
 func parsePrices(raw []byte, source string) (map[string]Price, error) {
@@ -308,6 +311,9 @@ func parsePrices(raw []byte, source string) (map[string]Price, error) {
 	}
 	result := make(map[string]Price, len(document))
 	for model, value := range document {
+		if value.Output == nil && value.Mode == "image_generation" {
+			value.Output = value.ImageOutput
+		}
 		if source == "override" {
 			price := Price{Source: source}
 			if value.Input != nil && *value.Input > 0 {

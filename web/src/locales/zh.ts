@@ -1057,7 +1057,7 @@ export const zh: Record<keyof typeof en, string> = {
   upstreamBaseURLInvalid:
     '请输入 HTTP 或 HTTPS 基础地址，不含登录凭据、查询参数或片段。',
   apiUpstreamUsageHint:
-    'SubLane 统计请求与 Token 用量。API 渠道不提供订阅额度或上游余额查询。',
+    'SubLane 统计请求与 Token 用量。OpenCode Go 渠道会显示上游额度；其他 API 渠道不提供订阅额度或上游余额查询。',
   apiKeyReplacementHint: '上游拒绝了此密钥。请更换 API 密钥后重新验证连接。',
   connectionMethod: '接入方式',
   accountOAuth: '浏览器授权',
@@ -1752,4 +1752,27 @@ export const zh: Record<keyof typeof en, string> = {
   requestRouteCooldown: '资源或模型冷却',
   requestRouteConcurrency: '并发容量',
   requestRouteUnavailable: '资源已停用或不可用',
+  auditGroupDelete: '删除资源组',
+  deleteGroup: '删除资源组',
+  deleteGroupNamed: '删除 {{name}}',
+  deleteGroupTitle: '删除资源组？',
+  deleteGroupDescription:
+    '“{{name}}”将停止路由请求，并移除其资源、模型策略和成员授权。请求记录和用量统计会保留。',
+  groupDeleteInUse:
+    '仍有有效的 API 密钥使用此资源组。请先将它们移到其他资源组或吊销。',
+  groupDeleteAllocated:
+    '此资源组配置了资源额度。请先删除额度方案，再删除资源组。',
+  groupDeleteMissing: '此资源组已不存在。',
+  groupDeleteFailed: '无法删除资源组，请重试。',
+  sessionSticky: '会话粘性',
+  sessionStickyHint:
+    '对未携带会话 ID 的对话，按开头提示词的哈希固定到同一资源，并让子代理优先使用父会话的资源。资源不可用时仍会自动切换。可提高上游提示词缓存命中率。',
+  sessionStickyEnabled: '已开启会话粘性',
+  editChannel: '编辑渠道',
+  channelEditDescription:
+    '修改名称、平台、协议、端点或密钥。渠道会保留其资源组分配、限制和请求记录。',
+  channelEditPlatformHint: '修改端点或协议会刷新模型目录，并需要重新验证连接。',
+  channelKeyKeepHint: '留空则保留已保存的密钥。已保存的密钥不会显示。',
+  saveChannel: '保存渠道',
+  usageMonthly: '月度额度',
 }

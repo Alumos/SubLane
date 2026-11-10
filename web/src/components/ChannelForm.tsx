@@ -71,8 +71,9 @@ export function ChannelForm({
       setInvalid('name')
       return
     }
+    // Editing keeps the stored key unless a replacement is entered.
     if (
-      !key ||
+      (!key && !channel) ||
       new TextEncoder().encode(key).length > 16384 ||
       /[\s\p{Cc}]/u.test(key)
     ) {
@@ -99,7 +100,7 @@ export function ChannelForm({
     save.mutate({
       id: channel?.id,
       name: name.trim(),
-      api_key: key,
+      api_key: key || undefined,
       base_url: baseURL.trim(),
       platform,
       protocol,
@@ -139,7 +140,7 @@ export function ChannelForm({
             )}
             searchLabel={t('channelPlatformSearch')}
             emptyLabel={t('channelPlatformNoMatch')}
-            disabled={Boolean(channel) || save.isPending}
+            disabled={save.isPending}
           />
         </div>
         <div className="space-y-2">
@@ -160,17 +161,13 @@ export function ChannelForm({
             )}
             searchLabel={t('channelProtocolSearch')}
             emptyLabel={t('channelProtocolNoMatch')}
-            disabled={
-              Boolean(channel) || platform !== 'custom' || save.isPending
-            }
+            disabled={platform !== 'custom' || save.isPending}
           />
         </div>
       </div>
-      {!channel && (
-        <p className="text-xs leading-5 text-muted-foreground">
-          {t('channelPlatformHint')}
-        </p>
-      )}
+      <p className="text-xs leading-5 text-muted-foreground">
+        {t(channel ? 'channelEditPlatformHint' : 'channelPlatformHint')}
+      </p>
       <div className="space-y-2">
         <label htmlFor="channel-name" className="text-sm font-medium">
           {t('channelName')}
@@ -179,7 +176,6 @@ export function ChannelForm({
           id="channel-name"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          readOnly={Boolean(channel)}
           disabled={save.isPending}
           maxLength={128}
           aria-invalid={invalid === 'name'}
@@ -194,7 +190,6 @@ export function ChannelForm({
           type="url"
           value={baseURL}
           onChange={(event) => setBaseURL(event.target.value)}
-          readOnly={Boolean(channel)}
           disabled={save.isPending}
           autoComplete="off"
           spellCheck={false}
@@ -205,7 +200,7 @@ export function ChannelForm({
           id="channel-endpoint-hint"
           className="text-xs leading-5 text-muted-foreground"
         >
-          {t(channel ? 'upstreamEndpointLocked' : 'upstreamBaseURLHint')}
+          {t('upstreamBaseURLHint')}
         </p>
       </div>
       <div className="space-y-2">
@@ -228,7 +223,7 @@ export function ChannelForm({
           id="channel-key-hint"
           className="text-xs leading-5 text-muted-foreground"
         >
-          {t('channelKeyHint')}
+          {t(channel ? 'channelKeyKeepHint' : 'channelKeyHint')}
         </p>
       </div>
       {!channel && (
@@ -275,7 +270,7 @@ export function ChannelForm({
               aria-hidden="true"
             />
           )}
-          {t(channel ? 'replaceAPIKey' : 'connectAPI')}
+          {t(channel ? 'saveChannel' : 'connectAPI')}
         </Button>
       </div>
     </form>
