@@ -1596,8 +1596,6 @@
   "ipReportAbuser": "Жалобы на злоупотребления",
   "ipReportCrawler": "Краулер",
   "ipReportClean": "Чистый",
-  "ipReportModerate": "Средний",
-  "ipReportRisky": "Рискованный",
   "ipReportScoreUnknown": "Нет оценки",
   "ipReportScore": "Оценка чистоты IP",
   "ipReportNoRisk": "Нет признаков риска",
@@ -1605,5 +1603,9 @@
   "ipReportISPLabel": "Провайдер",
   "ipReportLocationLabel": "Расположение",
   "ipReportVerdictLabel": "Вердикт",
-  "ipReportSource": "Данные card.net.coffee (получает выходной IP) · Обновлено {{time}}"
+  "ipReportSource": "Данные ip.net.coffee (получает выходной IP) · Обновлено {{time}}",
+  "ipReportPristine": "Безупречный",
+  "ipReportGood": "Хороший",
+  "ipReportNeutral": "Нейтральный",
+  "ipReportSuspicious": "Подозрительный"
 }

@@ -1586,8 +1586,6 @@
   "ipReportAbuser": "악용 기록",
   "ipReportCrawler": "크롤러",
   "ipReportClean": "깨끗함",
-  "ipReportModerate": "보통",
-  "ipReportRisky": "위험",
   "ipReportScoreUnknown": "점수 없음",
   "ipReportScore": "IP 청정도 점수",
   "ipReportNoRisk": "위험 표시 없음",
@@ -1595,5 +1593,9 @@
   "ipReportISPLabel": "ISP",
   "ipReportLocationLabel": "위치",
   "ipReportVerdictLabel": "판정",
-  "ipReportSource": "데이터 출처: card.net.coffee(출구 IP 전송) · {{time}} 업데이트"
+  "ipReportSource": "데이터 출처: ip.net.coffee(출구 IP 전송) · {{time}} 업데이트",
+  "ipReportPristine": "매우 깨끗함",
+  "ipReportGood": "양호",
+  "ipReportNeutral": "중립",
+  "ipReportSuspicious": "의심"
 }

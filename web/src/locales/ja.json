@@ -1586,8 +1586,6 @@
   "ipReportAbuser": "不正利用報告",
   "ipReportCrawler": "クローラー",
   "ipReportClean": "クリーン",
-  "ipReportModerate": "普通",
-  "ipReportRisky": "リスク高",
   "ipReportScoreUnknown": "スコアなし",
   "ipReportScore": "IP 純度スコア",
   "ipReportNoRisk": "リスク表示なし",
@@ -1595,5 +1593,9 @@
   "ipReportISPLabel": "ISP",
   "ipReportLocationLabel": "場所",
   "ipReportVerdictLabel": "判定",
-  "ipReportSource": "データ提供: card.net.coffee（出口 IP を送信）· {{time}} 更新"
+  "ipReportSource": "データ提供: ip.net.coffee（出口 IP を送信）· {{time}} 更新",
+  "ipReportPristine": "極めてクリーン",
+  "ipReportGood": "良好",
+  "ipReportNeutral": "普通",
+  "ipReportSuspicious": "要注意"
 }
