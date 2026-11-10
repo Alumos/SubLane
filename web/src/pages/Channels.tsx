@@ -5,9 +5,9 @@ import {
   Check,
   LoaderCircle,
   MoreHorizontal,
+  Pencil,
   Plus,
   Power,
-  RefreshCw,
   Route,
   SlidersHorizontal,
   Trash2,
@@ -31,6 +31,7 @@ import {
 import { reasonKeys } from '@/lib/runtime'
 import { ChannelLogo } from '@/components/ChannelLogo'
 import { ChannelEditor } from '@/components/ChannelEditor'
+import { AccountUsage } from '@/components/AccountUsage'
 import { CatalogDialog } from '@/components/CatalogDialog'
 import { AccountLimits } from '@/components/AccountLimits'
 import { AccountProxy } from '@/components/AccountProxy'
@@ -248,8 +249,8 @@ export function Channels() {
                           <DropdownMenuItem
                             onSelect={() => setEditing(channel)}
                           >
-                            <RefreshCw aria-hidden="true" />
-                            {t('replaceAPIKey')}
+                            <Pencil aria-hidden="true" />
+                            {t('editChannel')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setProxy(channel)}>
                             <Route aria-hidden="true" />
@@ -333,6 +334,18 @@ export function Channels() {
                       }
                     />
                   </div>
+                  {channel.platform === 'opencode-go' &&
+                    channel.enabled &&
+                    channel.status !== 'key_required' && (
+                      <div className="border-t border-border px-5 py-4">
+                        <AccountUsage
+                          id={channel.id}
+                          name={channel.name}
+                          provider="openai"
+                          resource="channels"
+                        />
+                      </div>
+                    )}
                   {channel.status === 'key_required' && (
                     <p className="border-t border-border px-5 py-3 text-sm text-error">
                       {t('apiKeyReplacementHint')}

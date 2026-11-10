@@ -88,6 +88,17 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	if err != nil {
 		return "", digest, err
 	}
+	derived := false
+	if hints, ok := stickyFrom(ctx); ok && policy.Routing.SessionSticky {
+		if hints.Session != "" && (session == "" || hints.Replace) {
+			session, derived = hints.Session, hints.Derived
+			digest = sessionDigest(userID, groupID, session)
+		}
+		// Subagents prefer their parent's resource among admitted candidates, as Codex reviews already do.
+		if parentThread == "" && hints.Parent != "" && hints.Parent != session {
+			parentThread = hints.Parent
+		}
+	}
 	requested := model
 	if provider != "" {
 		requested = provider + "/" + model
@@ -103,9 +114,23 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	}
 	now := s.now().Unix()
 	expires := now + 24*3600
+	if derived {
+		expires = now + derivedAffinitySeconds
+	}
 	bindingModel := upstream.CatalogModelID(model)
 	var replacement *db.ListSessionAffinitiesRow
-	if session != "" {
+	stickyAccount := ""
+	if session != "" && derived {
+		// A derived binding is only a preference: unavailable resources fall back to normal scheduling.
+		existing, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: digest[:], Now: now}, scope)
+		if err != nil && !errors.Is(err, ErrAffinityUnavailable) {
+			return "", digest, err
+		}
+		if existing != nil {
+			stickyAccount, replacement = existing.AccountID, existing
+		}
+	}
+	if session != "" && !derived {
 		existing, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: digest[:], Now: now}, scope)
 		if err != nil {
 			return "", digest, err
@@ -132,7 +157,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 			if !policy.AllowsProvider(bound.Provider) {
 				return id, digest, ErrAffinityUnavailable
 			}
-			if kind == Compact && bound.Provider != "codex" {
+			if kind.codexOnly() && bound.Provider != "codex" {
 				return id, digest, upstream.ErrInput
 			}
 			reselect := false
@@ -220,7 +245,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	var coolingModel string
 	var allocationErr error
 	for _, account := range available {
-		if !s.accounts.ProviderEnabled(account.Provider) || !policy.AllowsProvider(account.Provider) || !allowed[account.ID] || !account.Enabled || account.Status == "reauth_required" || (provider != "" && account.Provider != provider) || (kind == Compact && account.Provider != "codex") {
+		if !s.accounts.ProviderEnabled(account.Provider) || !policy.AllowsProvider(account.Provider) || !allowed[account.ID] || !account.Enabled || account.Status == "reauth_required" || (provider != "" && account.Provider != provider) || (kind.codexOnly() && account.Provider != "codex") {
 			if !s.accounts.ProviderEnabled(account.Provider) || !account.Enabled || account.Status == "reauth_required" {
 				route.Exclusions.Unavailable = min(maxRouteCount, route.Exclusions.Unavailable+1)
 			} else {
@@ -304,6 +329,10 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 		if account.ID == parentAccount {
 			rank = -1
 		}
+		// The conversation's own sticky resource outranks its parent's.
+		if account.ID == stickyAccount {
+			rank = -2
+		}
 		if rank < bestRank {
 			candidates = candidates[:0]
 			bestRank = rank
@@ -370,13 +399,21 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 		route.Strategy = "parent"
 		route.ParentFallback = false
 	}
+	if stickyAccount != "" && id == stickyAccount {
+		route.Strategy = "affinity"
+		route.ParentFallback = false
+	}
 	s.next[cursor] = (s.next[cursor] + 1) % period
 	if session != "" {
 		if replacement != nil && replacement.Provider == scope {
 			err = q.ReplaceAccountAffinity(ctx, db.ReplaceAccountAffinityParams{UserID: userID, GroupID: groupID, SessionHash: digest[:], Provider: scope, AccountID: id, Model: bindingModel, ExpiresAt: expires})
 		} else {
 			// Creating an auto binding from a legacy scope can also move the account.
-			err = rememberAffinity(ctx, q, userID, groupID, digest, scope, id, bindingModel, now, expires, replacement != nil)
+			err = rememberAffinity(ctx, q, userID, groupID, digest, scope, id, bindingModel, now, expires, replacement != nil && !derived)
+		}
+		// Derived preferences must never reject traffic that would otherwise be scheduled.
+		if derived && errors.Is(err, ErrAffinityLimit) {
+			err = nil
 		}
 		if err != nil {
 			return "", digest, err
