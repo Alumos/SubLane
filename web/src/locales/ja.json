@@ -1551,5 +1551,12 @@
   "channelEditPlatformHint": "エンドポイントやプロトコルを変更するとモデルカタログが更新され、接続の再確認が必要になります。",
   "channelKeyKeepHint": "空欄のままにすると保存済みのキーを維持します。保存済みのキーは表示されません。",
   "saveChannel": "チャンネルを保存",
-  "usageMonthly": "月間上限"
+  "usageMonthly": "月間上限",
+  "allocationDelete": "利用枠を削除",
+  "allocationDeleteNamed": "利用枠 {{name}} を削除",
+  "allocationDeleteTitle": "利用枠を削除しますか？",
+  "allocationDeleteDescription": "「{{name}}」とその予算ルール、価格スナップショット、利用枠の記帳を削除します。紐づく API キーは所属するリソースグループで引き続き利用できますが、予算の制限はなくなります。リクエスト履歴と使用量統計は保持されます。",
+  "allocationDeleteInFlight": "この利用枠を使用中のリクエストがまだ実行中です。完了してから再試行してください。",
+  "allocationDeleteMissing": "この利用枠はもう存在しません。",
+  "allocationDeleteFailed": "利用枠を削除できませんでした。もう一度お試しください。"
 }

@@ -707,6 +707,51 @@ func Cost(r Rate, input, output, cached int64) (int64, error) {
 }
 
 // Access toggles never depend on upstream availability or rewrite the policy revision.
+// ErrInFlight blocks deletion while admitted requests still hold allowance reservations.
+var ErrInFlight = errors.New("allocation_in_flight")
+
+// Delete removes an allowance with its revisions, key bindings and budget ledger in one audited
+// transaction. Request history and usage aggregates are stored separately and are retained.
+// Keys that were bound to it keep their resource group and are no longer budget-limited.
+func (s *Service) Delete(ctx context.Context, id int64) error {
+	tx, err := s.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	q := db.New(tx)
+	if _, err := q.GetTenantAllocationScheme(ctx, db.GetTenantAllocationSchemeParams{ID: id, TenantID: s.tenantID}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	active, err := q.AllocationHasActiveEntries(ctx, id)
+	if err != nil {
+		return err
+	}
+	if active {
+		return ErrInFlight
+	}
+	// Children first: entries reference revisions, and every child references the scheme.
+	for _, remove := range []func(context.Context, int64) error{q.DeleteAllocationEntries, q.DeleteAllocationKeys, q.DeleteAllocationRevisions} {
+		if err := remove(ctx, id); err != nil {
+			return err
+		}
+	}
+	removed, err := q.DeleteAllocationScheme(ctx, id)
+	if err != nil {
+		return err
+	}
+	if removed != 1 {
+		return ErrNotFound
+	}
+	if err := audit.Record(ctx, q, "allocation.delete", "allocation", audit.ID(id)); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *Service) SetEnabled(ctx context.Context, id int64, enabled bool) error {
 	tx, err := s.conn.BeginTx(ctx, nil)
 	if err != nil {

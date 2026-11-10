@@ -1556,5 +1556,12 @@
   "channelEditPlatformHint": "Modifier le point de terminaison ou le protocole actualise le catalogue de modèles et nécessite de revérifier la connexion.",
   "channelKeyKeepHint": "Laissez vide pour conserver la clé enregistrée. La clé enregistrée n’est jamais affichée.",
   "saveChannel": "Enregistrer le canal",
-  "usageMonthly": "Limite mensuelle"
+  "usageMonthly": "Limite mensuelle",
+  "allocationDelete": "Supprimer l’allocation d’usage",
+  "allocationDeleteNamed": "Supprimer l’allocation d’usage {{name}}",
+  "allocationDeleteTitle": "Supprimer l’allocation d’usage ?",
+  "allocationDeleteDescription": "« {{name}} » ainsi que ses règles de budget, instantanés de prix et registre de consommation seront supprimés. Les clés liées continueront de fonctionner dans leur groupe de ressources sans limite de budget. L’historique des requêtes et les statistiques d’utilisation sont conservés.",
+  "allocationDeleteInFlight": "Des requêtes utilisant cette allocation sont encore en cours. Réessayez lorsqu’elles seront terminées.",
+  "allocationDeleteMissing": "Cette allocation d’usage n’existe plus.",
+  "allocationDeleteFailed": "Impossible de supprimer l’allocation d’usage. Réessayez."
 }

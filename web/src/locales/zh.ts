@@ -1775,4 +1775,13 @@ export const zh: Record<keyof typeof en, string> = {
   channelKeyKeepHint: '留空则保留已保存的密钥。已保存的密钥不会显示。',
   saveChannel: '保存渠道',
   usageMonthly: '月度额度',
+  allocationDelete: '删除用量分配',
+  allocationDeleteNamed: '删除用量分配 {{name}}',
+  allocationDeleteTitle: '删除用量分配？',
+  allocationDeleteDescription:
+    '将删除“{{name}}”及其预算规则、价格快照和额度记账。绑定的 API 密钥仍可在所属资源组中使用，但不再受预算限制。请求记录和用量统计会保留。',
+  allocationDeleteInFlight:
+    '仍有使用此用量分配的请求在进行中，请等它们完成后再试。',
+  allocationDeleteMissing: '此用量分配已不存在。',
+  allocationDeleteFailed: '无法删除用量分配，请重试。',
 }

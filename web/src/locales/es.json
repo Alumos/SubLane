@@ -1556,5 +1556,12 @@
   "channelEditPlatformHint": "Cambiar el endpoint o el protocolo actualiza el catálogo de modelos y requiere verificar de nuevo la conexión.",
   "channelKeyKeepHint": "Déjalo en blanco para conservar la clave guardada. La clave guardada nunca se muestra.",
   "saveChannel": "Guardar canal",
-  "usageMonthly": "Límite mensual"
+  "usageMonthly": "Límite mensual",
+  "allocationDelete": "Eliminar asignación de uso",
+  "allocationDeleteNamed": "Eliminar asignación de uso {{name}}",
+  "allocationDeleteTitle": "¿Eliminar la asignación de uso?",
+  "allocationDeleteDescription": "Se eliminarán “{{name}}” y sus reglas de presupuesto, instantáneas de precios y registro de consumo. Las claves vinculadas seguirán funcionando en su grupo de recursos sin límite de presupuesto. El historial de solicitudes y las estadísticas de uso se conservan.",
+  "allocationDeleteInFlight": "Todavía hay solicitudes en curso que usan esta asignación. Inténtalo de nuevo cuando terminen.",
+  "allocationDeleteMissing": "Esta asignación de uso ya no existe.",
+  "allocationDeleteFailed": "No se pudo eliminar la asignación de uso. Inténtalo de nuevo."
 }

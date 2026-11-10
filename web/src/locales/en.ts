@@ -1944,4 +1944,14 @@ export const en = {
     'Leave blank to keep the stored key. The stored key is never shown.',
   saveChannel: 'Save channel',
   usageMonthly: 'Monthly limit',
+  allocationDelete: 'Delete resource allowance',
+  allocationDeleteNamed: 'Delete resource allowance {{name}}',
+  allocationDeleteTitle: 'Delete resource allowance?',
+  allocationDeleteDescription:
+    '“{{name}}” and its budget rules, price snapshots and allowance ledger will be deleted. Keys bound to it keep working in their resource group without a budget limit. Request history and usage statistics are kept.',
+  allocationDeleteInFlight:
+    'Requests using this allowance are still running. Try again when they finish.',
+  allocationDeleteMissing: 'This resource allowance no longer exists.',
+  allocationDeleteFailed:
+    'The resource allowance could not be deleted. Try again.',
 } satisfies Record<string, string>
