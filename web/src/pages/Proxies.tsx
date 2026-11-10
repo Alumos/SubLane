@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   LoaderCircle,
-  Pencil,
   Plus,
   Route,
   ScanSearch,
@@ -12,8 +11,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { ProxyEditor } from '@/components/ProxyEditor'
 import { ProxyImport } from '@/components/ProxyImport'
-import { ProxyIPReport } from '@/components/ProxyIPReport'
-import { Status } from '@/components/Status'
+import { ProxyCard } from '@/components/ProxyCard'
 import {
   checkProxy,
   deleteProxy,
@@ -32,10 +30,8 @@ import {
   DialogTitle,
 } from '@/components/ui/Dialog'
 
-import { useTimeZone } from '@/lib/timezone'
 export function Proxies() {
-  const { t, i18n } = useTranslation()
-  const timeZone = useTimeZone()
+  const { t } = useTranslation()
   const client = useQueryClient()
   const query = useQuery(proxyOptions)
   const heading = useRef<HTMLHeadingElement>(null)
@@ -108,14 +104,6 @@ export function Proxies() {
   const saved = () => client.invalidateQueries({ queryKey: ['proxies'] })
   const recentFailures =
     query.data?.proxies.filter((proxy) => proxy.prune_eligible).length ?? 0
-  const countryNames = new Intl.DisplayNames(i18n.resolvedLanguage ?? 'en', {
-    type: 'region',
-  })
-  const dates = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
-    timeZone,
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -139,7 +127,7 @@ export function Proxies() {
         {t('proxiesUsageHint')}
       </p>
       <p className="max-w-3xl text-xs leading-5 text-muted-foreground">
-        {t('proxyProbeHint')}
+        {t('proxyProbeHint')} {t('ipReportPageHint')}
       </p>
       <div className="flex flex-wrap gap-2">
         <Button
@@ -237,161 +225,26 @@ export function Proxies() {
           </p>
         </div>
       ) : (
-        <ul className="space-y-3" aria-label={t('proxiesTitle')}>
+        <ul
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,19rem),1fr))] gap-3"
+          aria-label={t('proxiesTitle')}
+        >
           {query.data.proxies.map((proxy) => (
-            <li key={proxy.id}>
-              <article
-                aria-labelledby={`proxy-${proxy.id}`}
-                className="@container overflow-hidden rounded-xl border border-border bg-card"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                      <Route aria-hidden="true" className="size-4" />
-                    </span>
-                    <div className="min-w-0 space-y-1">
-                      <h2
-                        id={`proxy-${proxy.id}`}
-                        className="break-words text-sm font-semibold"
-                      >
-                        {proxy.name}
-                      </h2>
-                      <p className="break-all text-xs text-muted-foreground">
-                        {proxy.endpoint}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1">
-                    {proxy.checked_at === 0 ? (
-                      <Status kind="neutral">{t('proxyNotTested')}</Status>
-                    ) : (
-                      <Status
-                        kind={
-                          proxy.reachable
-                            ? 'success'
-                            : proxy.check_error === 'connection_failed'
-                              ? 'error'
-                              : 'warning'
-                        }
-                      >
-                        {t(
-                          proxy.reachable
-                            ? 'proxyConnected'
-                            : proxy.check_error === 'lookup_rate_limited'
-                              ? 'proxyLookupRateLimited'
-                              : proxy.check_error === 'connection_failed'
-                                ? 'proxyConnectionFailed'
-                                : 'proxyLookupUnavailable',
-                        )}
-                      </Status>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-muted-foreground [@media(pointer:coarse)]:size-11"
-                      title={t('testProxyNamed', { name: proxy.name })}
-                      aria-label={t('testProxyNamed', { name: proxy.name })}
-                      disabled={
-                        check.isPending || checkAll.isPending || prune.isPending
-                      }
-                      onClick={() => check.mutate(proxy.id)}
-                    >
-                      {check.isPending && check.variables === proxy.id ? (
-                        <LoaderCircle
-                          className="motion-safe:animate-spin"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <ScanSearch aria-hidden="true" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-muted-foreground [@media(pointer:coarse)]:size-11"
-                      title={t('editProxyNamed', { name: proxy.name })}
-                      aria-label={t('editProxyNamed', { name: proxy.name })}
-                      onClick={() => setEditing(proxy)}
-                    >
-                      <Pencil aria-hidden="true" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-error hover:text-error focus-visible:text-error [@media(pointer:coarse)]:size-11"
-                      title={t('deleteProxyNamed', { name: proxy.name })}
-                      aria-label={t('deleteProxyNamed', { name: proxy.name })}
-                      disabled={checkAll.isPending || prune.isPending}
-                      onClick={() => {
-                        remove.reset()
-                        setDeleting(proxy)
-                      }}
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid gap-5 border-t border-border px-5 py-4 @2xl:grid-cols-[minmax(0,1fr)_minmax(16rem,0.9fr)]">
-                  <dl className="grid h-fit grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-                    <dt className="text-muted-foreground">
-                      {t('proxyExitIPLabel')}
-                    </dt>
-                    <dd className="break-all font-mono text-xs leading-5">
-                      {proxy.reachable && proxy.exit_ip ? proxy.exit_ip : '—'}
-                    </dd>
-                    <dt className="text-muted-foreground">
-                      {t('proxyLocationLabel')}
-                    </dt>
-                    <dd className="break-words">
-                      {proxy.reachable
-                        ? [
-                            proxy.city,
-                            proxy.region,
-                            proxy.country
-                              ? (countryNames.of(proxy.country) ??
-                                proxy.country)
-                              : '',
-                          ]
-                            .filter(Boolean)
-                            .join(', ') || t('proxyLocationUnknown')
-                        : '—'}
-                    </dd>
-                    <dt className="text-muted-foreground">
-                      {t('proxyLatencyLabel')}
-                    </dt>
-                    <dd className="tabular-nums">
-                      {proxy.reachable
-                        ? t('proxyLatency', { latency: proxy.latency_ms })
-                        : '—'}
-                    </dd>
-                    <dt className="text-muted-foreground">
-                      {t('proxyCheckedLabel')}
-                    </dt>
-                    <dd>
-                      {proxy.checked_at === 0 ? (
-                        '—'
-                      ) : (
-                        <time
-                          dateTime={new Date(
-                            proxy.checked_at * 1000,
-                          ).toISOString()}
-                        >
-                          {dates.format(proxy.checked_at * 1000)}
-                        </time>
-                      )}
-                    </dd>
-                    <dt className="text-muted-foreground">
-                      {t('proxyAccountsLabel')}
-                    </dt>
-                    <dd>
-                      {t('proxyAccountCount', { count: proxy.account_count })}
-                    </dd>
-                  </dl>
-                  <div className="min-w-0 border-t border-border pt-4 @2xl:border-l @2xl:border-t-0 @2xl:pl-5 @2xl:pt-0">
-                    <ProxyIPReport proxy={proxy} />
-                  </div>
-                </div>
-              </article>
+            <li key={proxy.id} className="min-w-0">
+              <ProxyCard
+                proxy={proxy}
+                checking={check.isPending && check.variables === proxy.id}
+                checkDisabled={
+                  check.isPending || checkAll.isPending || prune.isPending
+                }
+                deleteDisabled={checkAll.isPending || prune.isPending}
+                onCheck={() => check.mutate(proxy.id)}
+                onEdit={() => setEditing(proxy)}
+                onDelete={() => {
+                  remove.reset()
+                  setDeleting(proxy)
+                }}
+              />
             </li>
           ))}
         </ul>

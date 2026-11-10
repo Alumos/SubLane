@@ -313,11 +313,12 @@ it('imports multiple proxies and displays a checked exit location', async () => 
   expect(within(report).getByText('Clean')).toBeTruthy()
   expect(within(report).getByText('Residential')).toBeTruthy()
   expect(within(report).getByText('No risk flags')).toBeTruthy()
-  expect(within(report).getByText('AS64500 · Synthetic ISP')).toBeTruthy()
-  expect(screen.getAllByText('203.0.113.8').length).toBeGreaterThan(1)
+  // Each fact appears once per card even though the check and the report both describe it.
+  expect(screen.getByText('AS64500 · Synthetic ISP')).toBeTruthy()
+  expect(screen.getAllByText('203.0.113.8')).toHaveLength(1)
   expect(
-    screen.getAllByText('Test city, Test region, United States').length,
-  ).toBeGreaterThan(0)
+    screen.getAllByText('Test city, Test region, United States'),
+  ).toHaveLength(1)
   expect(
     screen.getAllByText('Test the connection to see the exit IP report.'),
   ).toHaveLength(1)
