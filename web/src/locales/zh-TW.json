@@ -1551,5 +1551,12 @@
   "channelEditPlatformHint": "修改端點或協定會重新整理模型目錄，並需要重新驗證連線。",
   "channelKeyKeepHint": "留空則保留已儲存的金鑰。已儲存的金鑰不會顯示。",
   "saveChannel": "儲存渠道",
-  "usageMonthly": "月度額度"
+  "usageMonthly": "月度額度",
+  "allocationDelete": "刪除用量分配",
+  "allocationDeleteNamed": "刪除用量分配 {{name}}",
+  "allocationDeleteTitle": "刪除用量分配？",
+  "allocationDeleteDescription": "將刪除「{{name}}」及其預算規則、價格快照和額度記帳。綁定的 API 金鑰仍可在所屬資源群組中使用，但不再受預算限制。請求記錄和用量統計會保留。",
+  "allocationDeleteInFlight": "仍有使用此用量分配的請求在進行中，請等它們完成後再試。",
+  "allocationDeleteMissing": "此用量分配已不存在。",
+  "allocationDeleteFailed": "無法刪除用量分配，請重試。"
 }

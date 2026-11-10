@@ -1551,5 +1551,12 @@
   "channelEditPlatformHint": "엔드포인트나 프로토콜을 변경하면 모델 카탈로그가 새로 고쳐지며 연결을 다시 확인해야 합니다.",
   "channelKeyKeepHint": "비워 두면 저장된 키가 유지됩니다. 저장된 키는 표시되지 않습니다.",
   "saveChannel": "채널 저장",
-  "usageMonthly": "월간 한도"
+  "usageMonthly": "월간 한도",
+  "allocationDelete": "사용량 할당 삭제",
+  "allocationDeleteNamed": "사용량 할당 {{name}} 삭제",
+  "allocationDeleteTitle": "사용량 할당을 삭제할까요?",
+  "allocationDeleteDescription": "“{{name}}”과(와) 예산 규칙, 가격 스냅샷, 할당 원장이 삭제됩니다. 연결된 API 키는 소속 리소스 그룹에서 계속 사용할 수 있지만 예산 제한은 없어집니다. 요청 기록과 사용량 통계는 유지됩니다.",
+  "allocationDeleteInFlight": "이 할당을 사용하는 요청이 아직 실행 중입니다. 완료된 후 다시 시도하세요.",
+  "allocationDeleteMissing": "이 사용량 할당은 더 이상 존재하지 않습니다.",
+  "allocationDeleteFailed": "사용량 할당을 삭제할 수 없습니다. 다시 시도하세요."
 }

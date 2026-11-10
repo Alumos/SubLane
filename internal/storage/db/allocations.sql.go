@@ -111,6 +111,17 @@ func (q *Queries) AllocationGroupUsage(ctx context.Context, arg AllocationGroupU
 	return column_1, err
 }
 
+const allocationHasActiveEntries = `-- name: AllocationHasActiveEntries :one
+SELECT EXISTS(SELECT 1 FROM allocation_entries WHERE scheme_id=?1 AND state='active')
+`
+
+func (q *Queries) AllocationHasActiveEntries(ctx context.Context, schemeID int64) (bool, error) {
+	row := q.db.QueryRowContext(ctx, allocationHasActiveEntries, schemeID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const allocationHasEntries = `-- name: AllocationHasEntries :one
 SELECT EXISTS(SELECT 1 FROM allocation_entries WHERE scheme_id=?)
 `
@@ -393,6 +404,24 @@ func (q *Queries) CurrentAllocationRevision(ctx context.Context, arg CurrentAllo
 	return i, err
 }
 
+const deleteAllocationEntries = `-- name: DeleteAllocationEntries :exec
+DELETE FROM allocation_entries WHERE scheme_id=?1
+`
+
+func (q *Queries) DeleteAllocationEntries(ctx context.Context, schemeID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteAllocationEntries, schemeID)
+	return err
+}
+
+const deleteAllocationKeys = `-- name: DeleteAllocationKeys :exec
+DELETE FROM allocation_keys WHERE scheme_id=?1
+`
+
+func (q *Queries) DeleteAllocationKeys(ctx context.Context, schemeID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteAllocationKeys, schemeID)
+	return err
+}
+
 const deleteAllocationPendingAt = `-- name: DeleteAllocationPendingAt :exec
 DELETE FROM allocation_revisions
 WHERE allocation_revisions.scheme_id=?1
@@ -410,6 +439,27 @@ type DeleteAllocationPendingAtParams struct {
 func (q *Queries) DeleteAllocationPendingAt(ctx context.Context, arg DeleteAllocationPendingAtParams) error {
 	_, err := q.db.ExecContext(ctx, deleteAllocationPendingAt, arg.SchemeID, arg.EffectiveAt, arg.Now)
 	return err
+}
+
+const deleteAllocationRevisions = `-- name: DeleteAllocationRevisions :exec
+DELETE FROM allocation_revisions WHERE scheme_id=?1
+`
+
+func (q *Queries) DeleteAllocationRevisions(ctx context.Context, schemeID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteAllocationRevisions, schemeID)
+	return err
+}
+
+const deleteAllocationScheme = `-- name: DeleteAllocationScheme :execrows
+DELETE FROM allocation_schemes WHERE id=?1
+`
+
+func (q *Queries) DeleteAllocationScheme(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteAllocationScheme, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const finishAllocationEntry = `-- name: FinishAllocationEntry :exec
