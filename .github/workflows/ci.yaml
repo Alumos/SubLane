@@ -1,8 +1,8 @@
 name: CI
 
+# Merged commits were already tested on their pull request, and release tags rerun the full
+# suite through workflow_call before anything is published.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_call:
     inputs:
@@ -73,7 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [gateway-server-a, gateway-server-b, other]
+        group: [gateway-server-1, gateway-server-2, gateway-server-3, gateway-server-4, gateway-server-5, other-1, other-2, other-3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -86,19 +86,27 @@ jobs:
         env:
           TEST_GROUP: ${{ matrix.group }}
         run: |
+          # Shards partition by test name and package; each final shard is a complement so
+          # examples, fuzz seeds, future test names and new packages are always tested.
+          heavy_a='/internal/(allocations|accounts)$'
+          heavy_b='/internal/(backup|auth|alerts)$'
           case "$TEST_GROUP" in
-            gateway-server-a)
-              go test -race -timeout=20m -run '^Test[A-L]' ./internal/gateway ./internal/server
-              ;;
-            gateway-server-b)
-              # The complementary skip also includes examples, fuzz seeds and future test names.
-              go test -race -timeout=20m -skip '^Test[A-L]' ./internal/gateway ./internal/server
-              ;;
-            other)
-              package_list=$(go list ./... | grep -vE '/internal/(gateway|server)$')
+            gateway-server-1) go test -race -timeout=20m -run '^Test[A-B]' ./internal/gateway ./internal/server ;;
+            gateway-server-2) go test -race -timeout=20m -run '^Test[C-G]' ./internal/gateway ./internal/server ;;
+            gateway-server-3) go test -race -timeout=20m -run '^Test[H-N]' ./internal/gateway ./internal/server ;;
+            gateway-server-4) go test -race -timeout=20m -run '^Test[O-R]' ./internal/gateway ./internal/server ;;
+            gateway-server-5) go test -race -timeout=20m -skip '^Test[A-R]' ./internal/gateway ./internal/server ;;
+            other-1|other-2|other-3)
+              all=$(go list ./... | grep -vE '/internal/(gateway|server)$')
+              case "$TEST_GROUP" in
+                other-1) package_list=$(grep -E "$heavy_a" <<< "$all") ;;
+                other-2) package_list=$(grep -E "$heavy_b" <<< "$all") ;;
+                other-3) package_list=$(grep -vE "$heavy_a|$heavy_b" <<< "$all") ;;
+              esac
               mapfile -t packages <<< "$package_list"
               go test -race -timeout=20m "${packages[@]}"
               ;;
+            *) echo "unknown test group: $TEST_GROUP" >&2; exit 1 ;;
           esac
 
   containers:
