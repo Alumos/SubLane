@@ -23,8 +23,14 @@ concurrency:
 
 jobs:
   validation:
+    # Independent checks run in parallel; every part shares the same pinned toolchain setup.
+    name: Validation (${{ matrix.part }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [lint, scripts, frontend, build]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,22 +52,29 @@ jobs:
           tool: git-cliff@2.14.2
       - run: make setup
       - name: Check generated code and lint
+        if: matrix.part == 'lint'
         run: make generate-check lint
       - name: Test maintenance scripts
+        if: matrix.part == 'scripts'
         run: node --test scripts/*.test.mjs
         env:
           SUBLANE_TEST_CHANGELOG: "1"
       - name: Test frontend
+        if: matrix.part == 'frontend'
         run: pnpm --dir web test
       - name: Build production binary
+        if: matrix.part == 'build'
         run: make build
       - name: Verify key migration with encrypted credentials
+        if: matrix.part == 'build'
         run: SUBLANE_TEST_MIGRATION_BINARY="$PWD/bin/sublane" node --test --test-name-pattern='real CLI' scripts/separate-key.test.mjs
       - name: Validate workflow and shell scripts
+        if: matrix.part == 'lint'
         run: |
           go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           shellcheck scripts/*.sh
       - name: Validate Compose configurations
+        if: matrix.part == 'lint'
         run: |
           docker compose -f docker.compose.yaml config --quiet
           docker compose -f docker.compose.yaml -f docker.compose.build.yaml config --quiet
