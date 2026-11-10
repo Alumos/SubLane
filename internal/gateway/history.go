@@ -144,6 +144,8 @@ func (s *Service) begin(ctx context.Context, userID, groupID int64, kind Kind) (
 		name = "chat"
 	} else if kind == Compact {
 		name = "compact"
+	} else if kind.IsImage() {
+		name = "images"
 	} else if kind == Messages {
 		name = "messages"
 	} else if kind.IsGemini() {

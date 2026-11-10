@@ -40,6 +40,8 @@ type AccountGroup struct {
 	TenantID          int64
 	RoutingPreference string
 	AllowApiFallback  int64
+	SessionSticky     bool
+	DeletedAt         *int64
 }
 
 type AlertState struct {

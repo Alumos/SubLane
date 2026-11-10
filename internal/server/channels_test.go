@@ -152,3 +152,63 @@ func TestOpenCodeChannelModelChecksAndConversationSessions(t *testing.T) {
 		t.Fatal("OpenCode conversations were not scoped and stable", sessions)
 	}
 }
+
+func TestChannelSettingsCanBeEditedInPlace(t *testing.T) {
+	f := newForwardFixture(t, func(http.ResponseWriter, *http.Request) { t.Error("unexpected provider IO") })
+	h := New(Options{Auth: f.identity, Accounts: f.accounts, Groups: f.groups})
+	origin := "http://example.test"
+	login := request(h, "POST", "/api/auth/login", origin, map[string]string{"username": "owner-test", "password": "owner pass 42"}, nil)
+	owner := login.Result().Cookies()[0]
+	created := request(h, "POST", "/api/channels", origin, map[string]string{"name": "Synthetic original", "api_key": "synthetic-original-key", "base_url": "https://one.example.test/v1", "platform": "custom", "protocol": "openai"}, owner)
+	var channel struct{ ID, Name, BaseURL, Platform, Protocol string }
+	if created.Code != 201 || json.Unmarshal(created.Body.Bytes(), &channel) != nil {
+		t.Fatal(created.Code, created.Body.String())
+	}
+	group := request(h, "POST", "/api/groups", origin, map[string]any{"name": "Synthetic channels", "enabled": true, "resources": []map[string]string{{"kind": "channel", "id": channel.ID}}}, owner)
+	if group.Code != 201 {
+		t.Fatal(group.Code, group.Body.String())
+	}
+	edited := request(h, "PUT", "/api/channels/"+channel.ID, origin, map[string]string{"name": "Synthetic renamed", "base_url": "https://two.example.test/v1", "platform": "custom", "protocol": "responses"}, owner)
+	var result struct {
+		ID, Name, Platform, Protocol string
+		BaseURL                      string `json:"base_url"`
+	}
+	if edited.Code != 200 || json.Unmarshal(edited.Body.Bytes(), &result) != nil {
+		t.Fatal(edited.Code, edited.Body.String())
+	}
+	if result.ID != channel.ID || result.Name != "Synthetic renamed" || result.BaseURL != "https://two.example.test/v1" || result.Protocol != "responses" {
+		t.Fatalf("edit result: %s", edited.Body.String())
+	}
+	groupsList, err := f.groups.List(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, value := range groupsList {
+		if value.Name == "Synthetic channels" && value.ChannelCount != 1 {
+			t.Fatal("edit removed group membership", value)
+		}
+	}
+	stored, err := f.accounts.Prepare(t.Context(), channel.ID, nil)
+	if err != nil || stored.AccessToken != "synthetic-original-key" || stored.BaseURL != "https://two.example.test/v1" {
+		t.Fatal("omitted key was not retained", err)
+	}
+	if strings.Contains(edited.Body.String(), "synthetic-original-key") {
+		t.Fatal("edit response disclosed the key")
+	}
+	rotated := request(h, "PUT", "/api/channels/"+channel.ID, origin, map[string]string{"name": "Synthetic renamed", "api_key": "synthetic-next-key", "base_url": "https://two.example.test/v1", "platform": "custom", "protocol": "responses"}, owner)
+	if rotated.Code != 200 {
+		t.Fatal(rotated.Code, rotated.Body.String())
+	}
+	if stored, err := f.accounts.Prepare(t.Context(), channel.ID, nil); err != nil || stored.AccessToken != "synthetic-next-key" {
+		t.Fatal("key was not replaced", err)
+	}
+	for _, invalid := range []map[string]string{
+		{"name": "", "base_url": "https://two.example.test/v1"},
+		{"name": "Synthetic", "base_url": "ftp://two.example.test"},
+		{"name": "Synthetic", "base_url": "https://two.example.test/v1", "protocol": "unknown"},
+	} {
+		if response := request(h, "PUT", "/api/channels/"+channel.ID, origin, invalid, owner); response.Code != 400 {
+			t.Fatal("invalid edit accepted", invalid, response.Code, response.Body.String())
+		}
+	}
+}
