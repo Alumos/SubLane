@@ -12,9 +12,9 @@ import (
 	"unicode/utf8"
 )
 
-// IPReportURL is the public IP reputation lookup used by proxy cards. The exit IP is the only
+// IPReportURL is the ip.net.coffee lookup behind its IP scoring page. The exit IP is the only
 // value sent; it never carries proxy credentials or account metadata.
-var IPReportURL = "https://card.net.coffee/api/ip/lookup/"
+var IPReportURL = "https://ip.net.coffee/api/ip/lookup/"
 
 // IPReportClient is replaceable at test seams.
 var IPReportClient = &http.Client{Timeout: 15 * time.Second}

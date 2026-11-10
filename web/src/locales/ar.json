@@ -1606,8 +1606,6 @@
   "ipReportAbuser": "بلاغات إساءة",
   "ipReportCrawler": "زاحف",
   "ipReportClean": "نظيف",
-  "ipReportModerate": "متوسط",
-  "ipReportRisky": "محفوف بالمخاطر",
   "ipReportScoreUnknown": "بلا تقييم",
   "ipReportScore": "درجة نقاء IP",
   "ipReportNoRisk": "لا توجد علامات خطر",
@@ -1615,5 +1613,9 @@
   "ipReportISPLabel": "المزود",
   "ipReportLocationLabel": "الموقع",
   "ipReportVerdictLabel": "الحكم",
-  "ipReportSource": "البيانات من card.net.coffee التي تتلقى عنوان IP للخروج · تم التحديث {{time}}"
+  "ipReportSource": "البيانات من ip.net.coffee التي تتلقى عنوان IP للخروج · تم التحديث {{time}}",
+  "ipReportPristine": "نقي تمامًا",
+  "ipReportGood": "جيد",
+  "ipReportNeutral": "محايد",
+  "ipReportSuspicious": "مشبوه"
 }

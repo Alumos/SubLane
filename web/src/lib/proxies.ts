@@ -163,10 +163,14 @@ export function ipReportErrorKey(error: unknown) {
   return 'ipReportFailed'
 }
 
-// Higher scores mean a cleaner exit; thresholds follow the provider's purity scale.
-export function ipScoreTone(score: number | null) {
-  if (score === null) return 'neutral' as const
-  if (score >= 70) return 'success' as const
-  if (score >= 40) return 'warning' as const
-  return 'error' as const
+// Tiers match ip.net.coffee's scoring page so a card and the full report agree.
+export function ipScoreTier(score: number | null) {
+  if (score === null)
+    return { tone: 'neutral', label: 'ipReportScoreUnknown' } as const
+  if (score >= 95)
+    return { tone: 'success', label: 'ipReportPristine' } as const
+  if (score >= 80) return { tone: 'success', label: 'ipReportClean' } as const
+  if (score >= 50) return { tone: 'info', label: 'ipReportGood' } as const
+  if (score >= 25) return { tone: 'warning', label: 'ipReportNeutral' } as const
+  return { tone: 'error', label: 'ipReportSuspicious' } as const
 }

@@ -1981,9 +1981,6 @@ export const en = {
   ipReportTor: 'Tor',
   ipReportAbuser: 'Abuse reports',
   ipReportCrawler: 'Crawler',
-  ipReportClean: 'Clean',
-  ipReportModerate: 'Moderate',
-  ipReportRisky: 'Risky',
   ipReportScoreUnknown: 'No score',
   ipReportScore: 'IP purity score',
   ipReportNoRisk: 'No risk flags',
@@ -1991,6 +1988,11 @@ export const en = {
   ipReportISPLabel: 'ISP',
   ipReportLocationLabel: 'Location',
   ipReportVerdictLabel: 'Verdict',
+  ipReportPristine: 'Pristine',
+  ipReportClean: 'Clean',
+  ipReportGood: 'Good',
+  ipReportNeutral: 'Neutral',
+  ipReportSuspicious: 'Suspicious',
   ipReportSource:
-    'Data from card.net.coffee, which receives the exit IP · Updated {{time}}',
+    'Data from ip.net.coffee, which receives the exit IP · Updated {{time}}',
 } satisfies Record<string, string>

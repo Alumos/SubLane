@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn'
 import {
   ipReportErrorKey,
   ipReportOptions,
-  ipScoreTone,
+  ipScoreTier,
   refreshIPReport,
   type IPReport,
   type Proxy,
@@ -16,6 +16,7 @@ import { Button } from './ui/Button'
 
 const toneText = {
   success: 'text-success',
+  info: 'text-info',
   warning: 'text-warning',
   error: 'text-error',
   neutral: 'text-muted-foreground',
@@ -125,7 +126,8 @@ function ReportBody({
   timeZone: string
 }) {
   const { t } = useTranslation()
-  const tone = ipScoreTone(report.trust_score)
+  const tier = ipScoreTier(report.trust_score)
+  const tone = tier.tone
   const flags = (
     [
       ['vpn', 'ipReportVPN'],
@@ -164,17 +166,7 @@ function ReportBody({
           </span>
           <span className="text-xs text-muted-foreground">/ 100</span>
         </div>
-        <Status kind={tone}>
-          {t(
-            tone === 'success'
-              ? 'ipReportClean'
-              : tone === 'warning'
-                ? 'ipReportModerate'
-                : tone === 'error'
-                  ? 'ipReportRisky'
-                  : 'ipReportScoreUnknown',
-          )}
-        </Status>
+        <Status kind={tone}>{t(tier.label)}</Status>
       </div>
       <div
         className="h-1.5 overflow-hidden rounded-full bg-muted"

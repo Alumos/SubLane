@@ -1586,8 +1586,6 @@
   "ipReportAbuser": "Missbrauchsmeldungen",
   "ipReportCrawler": "Crawler",
   "ipReportClean": "Sauber",
-  "ipReportModerate": "Mittel",
-  "ipReportRisky": "Riskant",
   "ipReportScoreUnknown": "Keine Bewertung",
   "ipReportScore": "IP-Reinheitswert",
   "ipReportNoRisk": "Keine Risikomerkmale",
@@ -1595,5 +1593,9 @@
   "ipReportISPLabel": "Provider",
   "ipReportLocationLabel": "Standort",
   "ipReportVerdictLabel": "Einschätzung",
-  "ipReportSource": "Daten von card.net.coffee (erhält die Ausgangs-IP) · Aktualisiert {{time}}"
+  "ipReportSource": "Daten von ip.net.coffee (erhält die Ausgangs-IP) · Aktualisiert {{time}}",
+  "ipReportPristine": "Makellos",
+  "ipReportGood": "Gut",
+  "ipReportNeutral": "Neutral",
+  "ipReportSuspicious": "Verdächtig"
 }

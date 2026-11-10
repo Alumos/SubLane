@@ -1586,8 +1586,6 @@
   "ipReportAbuser": "濫用記錄",
   "ipReportCrawler": "爬蟲",
   "ipReportClean": "純淨",
-  "ipReportModerate": "一般",
-  "ipReportRisky": "風險較高",
   "ipReportScoreUnknown": "暫無評分",
   "ipReportScore": "IP 純淨度評分",
   "ipReportNoRisk": "無風險標記",
@@ -1595,5 +1593,9 @@
   "ipReportISPLabel": "電信業者",
   "ipReportLocationLabel": "位置",
   "ipReportVerdictLabel": "判定",
-  "ipReportSource": "資料來自 card.net.coffee（會傳送出口 IP）· 更新於 {{time}}"
+  "ipReportSource": "資料來自 ip.net.coffee（會傳送出口 IP）· 更新於 {{time}}",
+  "ipReportPristine": "極度純淨",
+  "ipReportGood": "良好",
+  "ipReportNeutral": "中性",
+  "ipReportSuspicious": "可疑"
 }
