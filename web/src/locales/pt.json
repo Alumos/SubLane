@@ -1556,5 +1556,12 @@
   "channelEditPlatformHint": "Alterar o endpoint ou o protocolo atualiza o catálogo de modelos e exige verificar a conexão novamente.",
   "channelKeyKeepHint": "Deixe em branco para manter a chave salva. A chave salva nunca é exibida.",
   "saveChannel": "Salvar canal",
-  "usageMonthly": "Limite mensal"
+  "usageMonthly": "Limite mensal",
+  "allocationDelete": "Excluir alocação de uso",
+  "allocationDeleteNamed": "Excluir alocação de uso {{name}}",
+  "allocationDeleteTitle": "Excluir a alocação de uso?",
+  "allocationDeleteDescription": "“{{name}}” e suas regras de orçamento, instantâneos de preços e registro de consumo serão excluídos. As chaves vinculadas continuam funcionando no grupo de recursos, sem limite de orçamento. O histórico de solicitações e as estatísticas de uso são mantidos.",
+  "allocationDeleteInFlight": "Ainda há solicitações em andamento usando esta alocação. Tente novamente quando terminarem.",
+  "allocationDeleteMissing": "Esta alocação de uso não existe mais.",
+  "allocationDeleteFailed": "Não foi possível excluir a alocação de uso. Tente novamente."
 }

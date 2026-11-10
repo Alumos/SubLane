@@ -1551,5 +1551,12 @@
   "channelEditPlatformHint": "Eine Änderung von Endpunkt oder Protokoll aktualisiert den Modellkatalog und erfordert eine erneute Verbindungsprüfung.",
   "channelKeyKeepHint": "Leer lassen, um den gespeicherten Schlüssel zu behalten. Der gespeicherte Schlüssel wird nie angezeigt.",
   "saveChannel": "Kanal speichern",
-  "usageMonthly": "Monatslimit"
+  "usageMonthly": "Monatslimit",
+  "allocationDelete": "Nutzungskontingent löschen",
+  "allocationDeleteNamed": "Nutzungskontingent {{name}} löschen",
+  "allocationDeleteTitle": "Nutzungskontingent löschen?",
+  "allocationDeleteDescription": "„{{name}}“ wird mit Budgetregeln, Preisschnappschüssen und Kontingentbuchungen gelöscht. Verknüpfte Schlüssel funktionieren in ihrer Ressourcengruppe weiter, jedoch ohne Budgetlimit. Anfrageverlauf und Nutzungsstatistiken bleiben erhalten.",
+  "allocationDeleteInFlight": "Anfragen mit diesem Kontingent laufen noch. Versuchen Sie es erneut, wenn sie abgeschlossen sind.",
+  "allocationDeleteMissing": "Dieses Nutzungskontingent existiert nicht mehr.",
+  "allocationDeleteFailed": "Das Nutzungskontingent konnte nicht gelöscht werden. Versuchen Sie es erneut."
 }

@@ -231,6 +231,21 @@ export function allocationErrorKey(error: Error) {
   return 'allocationFailed'
 }
 
+export function deleteScheme(id: number) {
+  return request(`/api/allocations/${id}`, z.undefined(), {
+    method: 'DELETE',
+    body: '{}',
+  })
+}
+export function allocationDeleteErrorKey(error: Error) {
+  if (error instanceof ApiError) {
+    if (error.code === 'demo_read_only') return 'demoReadOnly'
+    if (error.code === 'allocation_in_flight') return 'allocationDeleteInFlight'
+    if (error.code === 'allocation_not_found') return 'allocationDeleteMissing'
+  }
+  return 'allocationDeleteFailed'
+}
+
 export function setSchemeEnabled(id: number, enabled: boolean) {
   return request(`/api/allocations/${id}/enabled`, z.undefined(), {
     method: 'POST',
