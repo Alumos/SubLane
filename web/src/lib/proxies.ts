@@ -103,3 +103,70 @@ export function proxyImportErrorKey(error: unknown) {
   }
   return proxyErrorKey(error)
 }
+
+const ipReportSchema = z.object({
+  ip: z.string().max(45),
+  trust_score: z.number().int().min(0).max(100).nullable(),
+  company_type: z.string().max(32).default(''),
+  residential: z.boolean(),
+  datacenter: z.boolean(),
+  mobile: z.boolean(),
+  vpn: z.boolean(),
+  proxy: z.boolean(),
+  tor: z.boolean(),
+  abuser: z.boolean(),
+  crawler: z.boolean(),
+  asn: z.number().int().nonnegative(),
+  as_organization: z.string().max(128).default(''),
+  isp: z.string().max(128).default(''),
+  country_code: z.string().max(2).default(''),
+  country: z.string().max(64).default(''),
+  region: z.string().max(64).default(''),
+  city: z.string().max(64).default(''),
+  rdns: z.string().max(253).default(''),
+  abuser_level: z.string().max(32).default(''),
+  verdict: z.string().max(48).default(''),
+  threats: z.array(z.string().max(48)).max(8).default([]),
+  fetched_at: z.number().int().positive(),
+})
+export type IPReport = z.infer<typeof ipReportSchema>
+
+// Reports are cached on the server per exit IP; the key changes when a check observes a new exit.
+export function ipReportOptions(id: string, ip: string) {
+  return {
+    queryKey: ['proxy-ip-report', id, ip],
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      request(
+        `/api/proxies/${encodeURIComponent(id)}/ip-report`,
+        ipReportSchema,
+        { signal },
+      ),
+    staleTime: 6 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  }
+}
+
+export function refreshIPReport(id: string) {
+  return request(
+    `/api/proxies/${encodeURIComponent(id)}/ip-report/refresh`,
+    ipReportSchema,
+    { method: 'POST', body: '{}' },
+  )
+}
+
+export function ipReportErrorKey(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.code === 'ip_report_rate_limited') return 'ipReportRateLimited'
+    if (error.code === 'ip_report_unsupported') return 'ipReportUnsupported'
+  }
+  return 'ipReportFailed'
+}
+
+// Higher scores mean a cleaner exit; thresholds follow the provider's purity scale.
+export function ipScoreTone(score: number | null) {
+  if (score === null) return 'neutral' as const
+  if (score >= 70) return 'success' as const
+  if (score >= 40) return 'warning' as const
+  return 'error' as const
+}

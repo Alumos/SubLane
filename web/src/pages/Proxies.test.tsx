@@ -250,6 +250,34 @@ it('imports multiple proxies and displays a checked exit location', async () => 
         }
         return Promise.resolve(response(proxies[0]))
       }
+      if (url === '/api/proxies/proxy-one/ip-report')
+        return Promise.resolve(
+          response({
+            ip: '203.0.113.8',
+            trust_score: 86,
+            company_type: 'isp',
+            residential: true,
+            datacenter: false,
+            mobile: false,
+            vpn: false,
+            proxy: false,
+            tor: false,
+            abuser: false,
+            crawler: false,
+            asn: 64500,
+            as_organization: 'Synthetic ISP',
+            isp: 'Synthetic ISP',
+            country_code: 'US',
+            country: 'United States',
+            region: 'Test region',
+            city: 'Test city',
+            rdns: '',
+            abuser_level: 'safe',
+            verdict: '',
+            threats: [],
+            fetched_at: 1900000000,
+          }),
+        )
       if (url === '/api/proxies') return Promise.resolve(response({ proxies }))
       return Promise.reject(new Error('Unexpected request'))
     })
@@ -263,6 +291,10 @@ it('imports multiple proxies and displays a checked exit location', async () => 
   )
   const user = userEvent.setup()
   await screen.findByRole('heading', { name: 'Network proxies' })
+  // Unchecked proxies explain how to obtain a report instead of calling the reputation service.
+  expect(
+    fetch.mock.calls.some(([url]) => String(url).includes('ip-report')),
+  ).toBe(false)
   await user.click(screen.getByRole('button', { name: 'Import proxies' }))
   const dialog = await screen.findByRole('dialog')
   await user.type(
@@ -274,8 +306,21 @@ it('imports multiple proxies and displays a checked exit location', async () => 
   )
   await screen.findByText('Named exit')
   await user.click(screen.getByRole('button', { name: 'Test 127.0.0.1:18080' }))
-  await screen.findByText('Exit IP: 203.0.113.8')
-  await screen.findByText('Location: Test city, Test region, United States')
+  const report = await screen.findByRole('region', {
+    name: 'IP report for 127.0.0.1:18080',
+  })
+  expect(await within(report).findByText('86')).toBeTruthy()
+  expect(within(report).getByText('Clean')).toBeTruthy()
+  expect(within(report).getByText('Residential')).toBeTruthy()
+  expect(within(report).getByText('No risk flags')).toBeTruthy()
+  expect(within(report).getByText('AS64500 · Synthetic ISP')).toBeTruthy()
+  expect(screen.getAllByText('203.0.113.8').length).toBeGreaterThan(1)
+  expect(
+    screen.getAllByText('Test city, Test region, United States').length,
+  ).toBeGreaterThan(0)
+  expect(
+    screen.getAllByText('Test the connection to see the exit IP report.'),
+  ).toHaveLength(1)
 })
 
 it('explains when the running backend lacks the bulk import route', async () => {
