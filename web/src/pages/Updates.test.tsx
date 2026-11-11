@@ -10,7 +10,7 @@ import { Updates } from './Updates'
 const state = {
   current_version: '1.2.0',
   latest_version: '1.3.0',
-  release_url: 'https://github.com/murongg/SubLane/releases/tag/v1.3.0',
+  release_url: 'https://github.com/Alumos/SubLane/releases/tag/v1.3.0',
   checked_at: 1900000000,
   check_failed: false,
   available: true,
@@ -162,3 +162,26 @@ it.each([
     ).toBeNull()
   },
 )
+
+it('accepts fork revision releases from this repository', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      Promise.resolve(
+        response({
+          ...state,
+          current_version: '0.19.2-revised.8',
+          latest_version: '0.19.2-revised.9',
+          release_url:
+            'https://github.com/Alumos/SubLane/releases/tag/v0.19.2-revised.9',
+        }),
+      ),
+    ),
+  )
+  mount()
+  // A revision build is a stable build: the page offers the newer revision instead of failing.
+  expect(
+    await screen.findByRole('button', { name: /0\.19\.2-revised\.9/ }),
+  ).toBeTruthy()
+  expect(screen.queryByText(/could not confirm/i)).toBeNull()
+})
