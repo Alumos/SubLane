@@ -131,22 +131,31 @@ const ipReportSchema = z.object({
 })
 export type IPReport = z.infer<typeof ipReportSchema>
 
-// Reports are cached on the server per exit IP; the key changes when a check observes a new exit.
+// Reading only returns a report the server already holds; it never discloses the exit IP.
+// The key changes when a check observes a new exit.
 export function ipReportOptions(id: string, ip: string) {
   return {
     queryKey: ['proxy-ip-report', id, ip],
-    queryFn: ({ signal }: { signal: AbortSignal }) =>
-      request(
-        `/api/proxies/${encodeURIComponent(id)}/ip-report`,
-        ipReportSchema,
-        { signal },
-      ),
+    queryFn: async ({ signal }: { signal: AbortSignal }) => {
+      try {
+        return await request(
+          `/api/proxies/${encodeURIComponent(id)}/ip-report`,
+          ipReportSchema,
+          { signal },
+        )
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 'ip_report_not_loaded')
+          return null
+        throw error
+      }
+    },
     staleTime: 6 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: false,
   }
 }
 
+// Explicit administrator action: sends the proxy's exit IP to ip.net.coffee.
 export function refreshIPReport(id: string) {
   return request(
     `/api/proxies/${encodeURIComponent(id)}/ip-report/refresh`,

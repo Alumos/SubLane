@@ -164,7 +164,7 @@ it('creates a channel independently and removes the key from mutation state', as
   ).toBe(false)
 })
 
-it('edits a channel in place and keeps the stored key when none is entered', async () => {
+it('renames a channel, keeps its stored key and locks its endpoint', async () => {
   const bodies: unknown[] = []
   vi.stubGlobal(
     'fetch',
@@ -203,15 +203,15 @@ it('edits a channel in place and keeps the stored key when none is entered', asy
   const name = within(dialog).getByLabelText('Channel name')
   await user.clear(name)
   await user.type(name, 'Synthetic renamed')
-  const endpoint = within(dialog).getByLabelText('Base URL')
-  await user.clear(endpoint)
-  await user.type(endpoint, 'https://edited.example.test/v1')
+  expect(
+    (within(dialog).getByLabelText('Base URL') as HTMLInputElement).readOnly,
+  ).toBe(true)
   await user.click(within(dialog).getByRole('button', { name: 'Save channel' }))
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   expect(bodies).toEqual([
     {
       name: 'Synthetic renamed',
-      base_url: 'https://edited.example.test/v1',
+      base_url: channel.base_url,
       platform: 'custom',
       protocol: 'openai',
     },

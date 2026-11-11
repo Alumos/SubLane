@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -290,11 +289,9 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	}
 	defer tx.Rollback()
 	q := s.queries.WithTx(tx)
-	row, err := q.GetTenantGroup(ctx, db.GetTenantGroupParams{ID: id, TenantID: s.tenantID})
-	if errors.Is(err, sql.ErrNoRows) {
+	if _, err := q.GetTenantGroup(ctx, db.GetTenantGroupParams{ID: id, TenantID: s.tenantID}); errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
-	}
-	if err != nil {
+	} else if err != nil {
 		return err
 	}
 	allocated, err := q.GroupHasAllocation(ctx, id)
@@ -317,8 +314,7 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 		}
 	}
 	now := time.Now().Unix()
-	// The retired name frees the unique workspace name while history keeps a recognizable label.
-	changed, err := q.RetireGroup(ctx, db.RetireGroupParams{ID: id, TenantID: s.tenantID, Now: &now, Name: fmt.Sprintf("%s (#%d)", row.Name, id)})
+	changed, err := q.RetireGroup(ctx, db.RetireGroupParams{ID: id, TenantID: s.tenantID, Now: &now})
 	if err != nil {
 		return err
 	}

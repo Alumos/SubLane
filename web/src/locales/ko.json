@@ -1547,8 +1547,7 @@
   "sessionStickyHint": "세션 ID가 없는 대화를 시작 프롬프트의 해시로 같은 리소스에 고정하고, 하위 에이전트가 상위 리소스를 우선 사용하게 합니다. 사용할 수 없는 리소스는 계속 장애 조치됩니다. 업스트림 프롬프트 캐시 적중률이 높아집니다.",
   "sessionStickyEnabled": "세션 고정 켜짐",
   "editChannel": "채널 편집",
-  "channelEditDescription": "이름, 플랫폼, 프로토콜, 엔드포인트 또는 키를 변경합니다. 채널의 그룹 할당, 제한, 요청 기록은 유지됩니다.",
-  "channelEditPlatformHint": "엔드포인트나 프로토콜을 변경하면 모델 카탈로그가 새로 고쳐지며 연결을 다시 확인해야 합니다.",
+  "channelEditDescription": "채널 이름을 바꾸거나 키를 교체합니다. 다른 엔드포인트나 프로토콜을 사용하려면 저장된 키가 다른 업스트림으로 전송되지 않도록 새 채널을 추가하세요.",
   "channelKeyKeepHint": "비워 두면 저장된 키가 유지됩니다. 저장된 키는 표시되지 않습니다.",
   "saveChannel": "채널 저장",
   "usageMonthly": "월간 한도",
@@ -1593,5 +1592,8 @@
   "proxyNetworkLabel": "네트워크",
   "proxyBoundAccounts": "연결된 계정",
   "proxyCheckedAt": "{{time}} 확인",
-  "ipReportPageHint": "IP 청정도 점수는 ip.net.coffee에서 가져오며(확인된 출구 IP 전송) 결과는 6시간 동안 캐시됩니다."
+  "ipReportPageHint": "IP 청정도는 직접 요청할 때만 조회하며, 이때 출구 IP가 ip.net.coffee로 전송되고 결과는 6시간 동안 캐시됩니다.",
+  "ipReportLookup": "IP 청정도 확인",
+  "ipReportLookupNamed": "{{name}}의 IP 청정도 확인",
+  "ipReportLookupHint": "확인하면 이 출구 IP가 ip.net.coffee로 전송됩니다."
 }

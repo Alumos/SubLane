@@ -15,6 +15,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import {
   channelOptions,
+  reportsOpenCodeUsage,
   channelRuntimeOptions,
   channelErrorKey,
   channelLoadErrorKey,
@@ -334,7 +335,7 @@ export function Channels() {
                       }
                     />
                   </div>
-                  {channel.platform === 'opencode-go' &&
+                  {reportsOpenCodeUsage(channel) &&
                     channel.enabled &&
                     channel.status !== 'key_required' && (
                       <div className="border-t border-border px-5 py-4">

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -366,7 +367,7 @@ func TestDeleteRetiresGroupOnlyAfterKeysAndAllowancesAreGone(t *testing.T) {
 	}
 	// The row and revoked key survive so history and usage aggregates keep their workspace scope.
 	var retained, members, resources int
-	if err := connection.QueryRow(`SELECT (SELECT count(*) FROM account_groups WHERE id=? AND deleted_at IS NOT NULL AND enabled=0),
+	if err := connection.QueryRow(`SELECT (SELECT count(*) FROM account_groups WHERE id=? AND deleted_at IS NOT NULL AND enabled=0 AND name='Retired'),
 		(SELECT count(*) FROM group_members WHERE group_id=?), (SELECT count(*) FROM group_accounts WHERE group_id=?)`, group.ID, group.ID, group.ID).Scan(&retained, &members, &resources); err != nil {
 		t.Fatal(err)
 	}
@@ -378,5 +379,34 @@ func TestDeleteRetiresGroupOnlyAfterKeysAndAllowancesAreGone(t *testing.T) {
 	}
 	if err := service.Delete(ctx, group.ID); !errors.Is(err, groups.ErrNotFound) {
 		t.Fatalf("repeated deletion: %v", err)
+	}
+}
+
+func TestDeletedGroupNamesNeverCollide(t *testing.T) {
+	_, service, _, _ := fixture(t)
+	ctx := context.Background()
+	group, err := service.Save(ctx, 0, groups.Input{Name: "Synthetic group", Enabled: true, AccountIDs: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Any label is valid, including one shaped like a retired-name suffix.
+	if _, err := service.Save(ctx, 0, groups.Input{Name: fmt.Sprintf("Synthetic group (#%d)", group.ID), Enabled: true, AccountIDs: []string{}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Delete(ctx, group.ID); err != nil {
+		t.Fatal("deletion collided with another group's name", err)
+	}
+	reused, err := service.Save(ctx, 0, groups.Input{Name: "synthetic GROUP", Enabled: true, AccountIDs: []string{}})
+	if err != nil {
+		t.Fatal("released name could not be reused", err)
+	}
+	if err := service.Delete(ctx, reused.ID); err != nil {
+		t.Fatal("a second retired group with the same name was rejected", err)
+	}
+	if _, err := service.Save(ctx, 0, groups.Input{Name: "Synthetic group", Enabled: true, AccountIDs: []string{}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Save(ctx, 0, groups.Input{Name: "SYNTHETIC group", Enabled: true, AccountIDs: []string{}}); !errors.Is(err, groups.ErrDuplicate) {
+		t.Fatal("active names are no longer unique", err)
 	}
 }

@@ -195,9 +195,11 @@ func Begin(ctx context.Context, q *db.Queries, r Request, now int64, location *t
 
 type Completion struct {
 	Input, Output, Cached int64
-	Known                 bool
-	Dispatched            bool
-	Rejected              bool
+	// ImageInput is the image share of Input, reported by image generation responses.
+	ImageInput int64
+	Known      bool
+	Dispatched bool
+	Rejected   bool
 }
 
 func Finish(ctx context.Context, q *db.Queries, id string, c Completion, now int64, manual bool) error {
@@ -237,7 +239,7 @@ func Finish(ctx context.Context, q *db.Queries, id string, c Completion, now int
 		if err != nil {
 			return err
 		}
-		cost, err = Cost(rate, c.Input, c.Output, c.Cached)
+		cost, err = CostWithImages(rate, c.Input, c.ImageInput, c.Output, c.Cached)
 		if err != nil {
 			return err
 		}

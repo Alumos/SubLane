@@ -140,3 +140,55 @@ func TestStickyHintsReadClientConversationMetadata(t *testing.T) {
 		t.Fatal("message fallback changed between turns")
 	}
 }
+
+func TestDerivedPreferencesNeverRewriteExplicitBindings(t *testing.T) {
+	s, _, _ := stickyGateway(t, true)
+	explicit := http.Header{}
+	explicit.Set("Session_id", "synthetic-shared-id")
+	original := openSticky(t, s, explicit, stickyOpening)
+	derived := http.Header{}
+	derived.Set("X-Session-Id", "synthetic-shared-id")
+	if _, err := s.accounts.SetEnabled(context.Background(), original, false); err != nil {
+		t.Fatal(err)
+	}
+	if fallback := openSticky(t, s, derived, stickyOpening); fallback == original {
+		t.Fatal("derived request used the disabled account")
+	}
+	if _, err := s.accounts.SetEnabled(context.Background(), original, true); err != nil {
+		t.Fatal(err)
+	}
+	// The explicit continuation keeps its own binding regardless of the derived fallback.
+	if got := openSticky(t, s, explicit, stickyOpening); got != original {
+		t.Fatalf("explicit session moved from %s to %s", original, got)
+	}
+}
+
+func TestDerivedPreferencesNeverBlockExplicitSessions(t *testing.T) {
+	s, _, _ := stickyGateway(t, true)
+	var existing int
+	if err := s.db.QueryRow("SELECT count(*) FROM account_affinity").Scan(&existing); err != nil {
+		t.Fatal(err)
+	}
+	// Leave exactly one free slot in the shared table.
+	if _, err := s.db.Exec(`WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i < ?)
+		INSERT INTO account_affinity(user_id,group_id,session_hash,provider,account_id,expires_at,model,rebound,derived)
+		SELECT 1,1,randomblob(32),'auto','synthetic-filler',unixepoch()+3600,'',0,0 FROM n`, affinityLimit-1-existing); err != nil {
+		t.Fatal(err)
+	}
+	openSticky(t, s, http.Header{}, stickyOpening)
+	var derived int
+	if err := s.db.QueryRow("SELECT count(*) FROM account_affinity WHERE derived=1").Scan(&derived); err != nil || derived != 1 {
+		t.Fatal("derived preference did not take the free slot", derived, err)
+	}
+	explicit := http.Header{}
+	explicit.Set("Session_id", "synthetic-new-explicit")
+	openSticky(t, s, explicit, stickyOpening)
+	var total int
+	if err := s.db.QueryRow("SELECT count(*), sum(derived) FROM account_affinity").Scan(&total, &derived); err != nil || total != affinityLimit || derived != 0 {
+		t.Fatal("explicit session did not displace the preference", total, derived, err)
+	}
+	// With the table full of explicit bindings, preferences are skipped rather than rejected.
+	if got := openSticky(t, s, http.Header{}, `{"model":"synthetic-model","input":[{"role":"user","content":"Another synthetic opening"}]}`); got == "" {
+		t.Fatal("derived request was rejected")
+	}
+}

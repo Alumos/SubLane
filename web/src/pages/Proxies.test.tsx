@@ -250,7 +250,13 @@ it('imports multiple proxies and displays a checked exit location', async () => 
         }
         return Promise.resolve(response(proxies[0]))
       }
+      // Reads only return cached reports; the explicit refresh is the one disclosure.
       if (url === '/api/proxies/proxy-one/ip-report')
+        return Promise.resolve(response({ error: 'ip_report_not_loaded' }, 404))
+      if (
+        url === '/api/proxies/proxy-one/ip-report/refresh' &&
+        init?.method === 'POST'
+      )
         return Promise.resolve(
           response({
             ip: '203.0.113.8',
@@ -309,6 +315,13 @@ it('imports multiple proxies and displays a checked exit location', async () => 
   const report = await screen.findByRole('region', {
     name: 'IP report for 127.0.0.1:18080',
   })
+  const lookup = await within(report).findByRole('button', {
+    name: 'Check IP purity for 127.0.0.1:18080',
+  })
+  expect(
+    fetch.mock.calls.some(([url]) => String(url).endsWith('/refresh')),
+  ).toBe(false)
+  await user.click(lookup)
   expect(await within(report).findByText('86')).toBeTruthy()
   expect(within(report).getByText('Clean')).toBeTruthy()
   expect(within(report).getByText('Residential')).toBeTruthy()

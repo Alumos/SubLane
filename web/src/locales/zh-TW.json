@@ -1547,8 +1547,7 @@
   "sessionStickyHint": "對未攜帶工作階段 ID 的對話，依開頭提示詞的雜湊固定到同一資源，並讓子代理優先使用父工作階段的資源。資源不可用時仍會自動切換。可提高上游提示詞快取命中率。",
   "sessionStickyEnabled": "已開啟工作階段黏性",
   "editChannel": "編輯渠道",
-  "channelEditDescription": "修改名稱、平台、協定、端點或金鑰。渠道會保留其資源群組分配、限制和請求記錄。",
-  "channelEditPlatformHint": "修改端點或協定會重新整理模型目錄，並需要重新驗證連線。",
+  "channelEditDescription": "修改渠道名稱或更換金鑰。如需使用其他端點或協定，請新建渠道，避免已儲存的金鑰被傳送到其他上游。",
   "channelKeyKeepHint": "留空則保留已儲存的金鑰。已儲存的金鑰不會顯示。",
   "saveChannel": "儲存渠道",
   "usageMonthly": "月度額度",
@@ -1593,5 +1592,8 @@
   "proxyNetworkLabel": "網路",
   "proxyBoundAccounts": "綁定帳號",
   "proxyCheckedAt": "檢測於 {{time}}",
-  "ipReportPageHint": "IP 純淨度評分來自 ip.net.coffee（會傳送已檢測的出口 IP），結果快取 6 小時。"
+  "ipReportPageHint": "IP 純淨度只在你手動查詢時取得，屆時會把該出口 IP 傳送給 ip.net.coffee，結果快取 6 小時。",
+  "ipReportLookup": "查詢 IP 純淨度",
+  "ipReportLookupNamed": "查詢 {{name}} 的 IP 純淨度",
+  "ipReportLookupHint": "查詢時會把該出口 IP 傳送給 ip.net.coffee。"
 }

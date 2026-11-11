@@ -307,3 +307,16 @@ export function channelLoadErrorKey(error: unknown) {
     return 'channelBackendMissing'
   return 'channelsLoadFailed'
 }
+
+// Usage is read from opencode.ai only for channels whose key belongs to that origin.
+export function reportsOpenCodeUsage(
+  channel: Pick<Channel, 'platform' | 'base_url'>,
+) {
+  if (channel.platform !== 'opencode-go') return false
+  try {
+    const url = new URL(channel.base_url)
+    return url.protocol === 'https:' && url.host === 'opencode.ai'
+  } catch {
+    return false
+  }
+}

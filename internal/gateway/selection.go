@@ -93,6 +93,10 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 		if hints.Session != "" && (session == "" || hints.Replace) {
 			session, derived = hints.Session, hints.Derived
 			digest = sessionDigest(userID, groupID, session)
+			if derived {
+				// Preferences live in their own namespace so they can never read or rewrite an explicit binding.
+				digest = derivedDigest(userID, groupID, session)
+			}
 		}
 		// Subagents prefer their parent's resource among admitted candidates, as Codex reviews already do.
 		if parentThread == "" && hints.Parent != "" && hints.Parent != session {
@@ -207,7 +211,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 					bindingModel = existing.Model
 				}
 				if existing.Provider != scope {
-					if err := rememberAffinity(ctx, q, userID, groupID, digest, scope, id, bindingModel, now, expires, existing.Rebound); err != nil {
+					if err := rememberAffinity(ctx, q, userID, groupID, digest, scope, id, bindingModel, now, expires, existing.Rebound, false); err != nil {
 						return "", digest, err
 					}
 				}
@@ -228,13 +232,20 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	parentAccount := ""
 	if parentThread != "" && affinity != continuationAffinity {
 		// Resolve only in the authenticated user's pool; parent hints never contain trusted account IDs.
-		hash := sessionDigest(userID, groupID, parentThread)
-		binding, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: hash[:], Now: now}, "auto")
-		if err != nil && !errors.Is(err, ErrAffinityUnavailable) {
-			return "", digest, err
+		// Parent lookups are read-only: an explicit parent binding wins, then a derived parent preference.
+		hashes := [][32]byte{sessionDigest(userID, groupID, parentThread)}
+		if policy.Routing.SessionSticky {
+			hashes = append(hashes, derivedDigest(userID, groupID, parentThread))
 		}
-		if binding != nil {
-			parentAccount = binding.AccountID
+		for _, hash := range hashes {
+			binding, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: hash[:], Now: now}, "auto")
+			if err != nil && !errors.Is(err, ErrAffinityUnavailable) {
+				return "", digest, err
+			}
+			if binding != nil {
+				parentAccount = binding.AccountID
+				break
+			}
 		}
 	}
 	candidates := make([]string, 0, len(available))
@@ -409,7 +420,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 			err = q.ReplaceAccountAffinity(ctx, db.ReplaceAccountAffinityParams{UserID: userID, GroupID: groupID, SessionHash: digest[:], Provider: scope, AccountID: id, Model: bindingModel, ExpiresAt: expires})
 		} else {
 			// Creating an auto binding from a legacy scope can also move the account.
-			err = rememberAffinity(ctx, q, userID, groupID, digest, scope, id, bindingModel, now, expires, replacement != nil && !derived)
+			err = rememberAffinity(ctx, q, userID, groupID, digest, scope, id, bindingModel, now, expires, replacement != nil && !derived, derived)
 		}
 		// Derived preferences must never reject traffic that would otherwise be scheduled.
 		if derived && errors.Is(err, ErrAffinityLimit) {
@@ -436,7 +447,13 @@ func preferredProvider(kind Kind) string {
 	}
 }
 
-func rememberAffinity(ctx context.Context, q *db.Queries, userID, groupID int64, digest [32]byte, scope, id, model string, now, expires int64, rebound bool) error {
+const (
+	affinityLimit = 4096
+	// Derived preferences may hold at most a quarter of the shared table.
+	derivedAffinityLimit = affinityLimit / 4
+)
+
+func rememberAffinity(ctx context.Context, q *db.Queries, userID, groupID int64, digest [32]byte, scope, id, model string, now, expires int64, rebound, derived bool) error {
 	if err := q.PruneAccountAffinity(ctx, now); err != nil {
 		return err
 	}
@@ -444,8 +461,23 @@ func rememberAffinity(ctx context.Context, q *db.Queries, userID, groupID int64,
 	if err != nil {
 		return err
 	}
-	if count >= 4096 {
-		return ErrAffinityLimit
+	if derived {
+		preferences, err := q.CountDerivedAffinity(ctx)
+		if err != nil {
+			return err
+		}
+		if count >= affinityLimit || preferences >= derivedAffinityLimit {
+			return ErrAffinityLimit
+		}
+	} else if count >= affinityLimit {
+		// An explicit conversation never fails because preferences filled the table.
+		evicted, err := q.EvictDerivedAffinity(ctx)
+		if err != nil {
+			return err
+		}
+		if evicted == 0 {
+			return ErrAffinityLimit
+		}
 	}
-	return q.CreateAccountAffinity(ctx, db.CreateAccountAffinityParams{GroupID: groupID, Provider: scope, UserID: userID, SessionHash: digest[:], AccountID: id, Model: model, ExpiresAt: expires, Rebound: rebound})
+	return q.CreateAccountAffinity(ctx, db.CreateAccountAffinityParams{GroupID: groupID, Provider: scope, UserID: userID, SessionHash: digest[:], AccountID: id, Model: model, ExpiresAt: expires, Rebound: rebound, Derived: derived})
 }

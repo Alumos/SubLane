@@ -19,7 +19,7 @@ INSERT INTO account_groups(tenant_id,name,enabled,created_at,updated_at)
 VALUES(sqlc.arg(tenant_id),sqlc.arg(name),sqlc.arg(enabled),sqlc.arg(now),sqlc.arg(now));
 
 -- name: FindGroupName :one
-SELECT id FROM account_groups WHERE tenant_id=sqlc.arg(tenant_id) AND name=sqlc.arg(name) COLLATE NOCASE;
+SELECT id FROM account_groups WHERE tenant_id=sqlc.arg(tenant_id) AND name=sqlc.arg(name) COLLATE NOCASE AND deleted_at IS NULL;
 
 -- name: UpdateGroup :exec
 UPDATE account_groups SET name=sqlc.arg(name),enabled=sqlc.arg(enabled),updated_at=sqlc.arg(now)
@@ -118,6 +118,6 @@ DELETE FROM group_members WHERE group_id=sqlc.arg(group_id);
 DELETE FROM account_affinity WHERE group_id=sqlc.arg(group_id);
 
 -- name: RetireGroup :execrows
--- Retired names free the unique workspace name while history keeps a recognizable label.
-UPDATE account_groups SET enabled=0,deleted_at=sqlc.arg(now),updated_at=sqlc.arg(now),name=sqlc.arg(name)
+-- Retired groups keep their names; uniqueness only applies to active groups.
+UPDATE account_groups SET enabled=0,deleted_at=sqlc.arg(now),updated_at=sqlc.arg(now)
 WHERE id=sqlc.arg(id) AND tenant_id=sqlc.arg(tenant_id) AND deleted_at IS NULL;

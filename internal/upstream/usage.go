@@ -61,7 +61,7 @@ func (c *Client) Usage(ctx context.Context, credential accounts.Credential) (Usa
 		return c.antigravityUsage(ctx, credential)
 	case "openai":
 		// API channels only report quota where the platform publishes a key-authenticated usage endpoint.
-		if credential.APIConfig().Platform == "opencode-go" {
+		if OfficialOpenCodeGo(credential.BaseURL, credential.APIConfig().Platform) {
 			return c.openCodeGoUsage(ctx, credential)
 		}
 		return Usage{}, ErrUsageUnsupported
