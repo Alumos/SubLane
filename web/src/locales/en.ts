@@ -1992,4 +1992,7 @@ export const en = {
   ipReportLookupHint: 'Checking sends this exit IP to ip.net.coffee.',
   ipReportPageHint:
     'IP purity is looked up only when you request it; ip.net.coffee then receives that exit IP, and results are cached for six hours.',
+  allocationImageInputM: 'Image input · M',
+  allocationImageInputHint:
+    'For image model requests: the image share of input tokens, charged at the image input rate. Leave empty otherwise.',
 } satisfies Record<string, string>

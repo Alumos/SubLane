@@ -1600,5 +1600,7 @@
   "ipReportPageHint": "La pureté IP n’est consultée que sur demande ; ip.net.coffee reçoit alors cette IP de sortie et le résultat est conservé six heures.",
   "ipReportLookup": "Vérifier la pureté IP",
   "ipReportLookupNamed": "Vérifier la pureté IP de {{name}}",
-  "ipReportLookupHint": "La vérification envoie cette IP de sortie à ip.net.coffee."
+  "ipReportLookupHint": "La vérification envoie cette IP de sortie à ip.net.coffee.",
+  "allocationImageInputM": "Entrée image · M",
+  "allocationImageInputHint": "Pour les requêtes de modèles d’image : la part image des jetons d’entrée, facturée au tarif d’entrée image. Sinon, laissez vide."
 }

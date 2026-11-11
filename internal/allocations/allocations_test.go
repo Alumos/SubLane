@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1791,5 +1792,49 @@ func TestCostSettlesImageInputByModality(t *testing.T) {
 	}
 	if _, err := CostWithImages(rate, 100, 60, 0, 50); !errors.Is(err, ErrInput) {
 		t.Fatal("overlapping categories accepted", err)
+	}
+}
+
+func TestManualSettlementChargesImageInputAtImageRate(t *testing.T) {
+	s, conn, user, account := fixture(t)
+	ctx := context.Background()
+	now := time.Date(2030, 1, 2, 12, 0, 0, 0, time.UTC)
+	s.now = func() time.Time { return now }
+	config := `{"mode":"amount","period":"day","members":[{"user_id":` + strconv.FormatInt(user, 10) + `,"limit":1000000000}],"rates":[{"model":"gpt-image-2","input":5000000,"cached":1250000,"output":30000000,"image_input":8000000}]}`
+	if _, err := conn.Exec(`INSERT INTO allocation_schemes(id,name,group_id,enabled,created_at) VALUES(9,'Synthetic image allowance',2,1,?)`, now.Unix()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(`INSERT INTO allocation_revisions(id,scheme_id,effective_at,accounting_anchor_at,config) VALUES(90,9,?,?,?)`, now.Unix()-60, now.Unix()-60, config); err != nil {
+		t.Fatal(err)
+	}
+	q := db.New(conn)
+	r := Request{ID: "synthetic-image-edit", SchemeID: 9, UserID: user, GroupID: 2, AccountID: account, Model: "gpt-image-2", StartedAt: now.Unix()}
+	if err := Begin(ctx, q, r, now.Unix(), time.UTC); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.RecoverAllocationEntries(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Settle(ctx, 9, r.ID, Completion{Input: 1_000_000, ImageInput: 400_000, Cached: 100_000, Output: 1_000_000}); err != nil {
+		t.Fatal(err)
+	}
+	var cost int64
+	if err := conn.QueryRow(`SELECT cost FROM allocation_entries WHERE request_id=?`, r.ID).Scan(&cost); err != nil {
+		t.Fatal(err)
+	}
+	// 500k text * $5 + 400k image * $8 + 100k cached * $1.25 + 1M image output * $30, in micro-USD.
+	if cost != 35_825_000 {
+		t.Fatalf("manual settlement ignored the image input split: %d", cost)
+	}
+	overlap := r
+	overlap.ID = "synthetic-image-overlap"
+	if err := Begin(ctx, q, overlap, now.Unix(), time.UTC); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.RecoverAllocationEntries(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Settle(ctx, 9, overlap.ID, Completion{Input: 100, ImageInput: 60, Cached: 50}); !errors.Is(err, ErrInput) {
+		t.Fatal("overlapping image and cached input accepted", err)
 	}
 }

@@ -216,15 +216,21 @@ func (h *allocationHTTP) settle(w http.ResponseWriter, r *http.Request) {
 		Input     *int64 `json:"input"`
 		Output    *int64 `json:"output"`
 		Cached    *int64 `json:"cached"`
+		// ImageInput is the optional image share of Input for image model requests.
+		ImageInput *int64 `json:"image_input"`
 	}
 	if !decodeJSON(w, r, &in) {
 		return
 	}
-	if in.Input == nil || in.Output == nil || in.Cached == nil {
+	if in.Input == nil || in.Output == nil || in.Cached == nil || in.ImageInput != nil && *in.ImageInput < 0 {
 		allocationError(w, allocations.ErrInput)
 		return
 	}
-	err = h.gateway.Allocations().Settle(r.Context(), id, in.RequestID, allocations.Completion{Input: *in.Input, Output: *in.Output, Cached: *in.Cached})
+	var imageInput int64
+	if in.ImageInput != nil {
+		imageInput = *in.ImageInput
+	}
+	err = h.gateway.Allocations().Settle(r.Context(), id, in.RequestID, allocations.Completion{Input: *in.Input, ImageInput: imageInput, Output: *in.Output, Cached: *in.Cached})
 	if err != nil {
 		allocationError(w, err)
 		return

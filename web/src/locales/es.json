@@ -1600,5 +1600,7 @@
   "ipReportPageHint": "La pureza de IP solo se consulta cuando la solicitas; entonces ip.net.coffee recibe esa IP de salida y el resultado se guarda seis horas.",
   "ipReportLookup": "Comprobar pureza de IP",
   "ipReportLookupNamed": "Comprobar la pureza de IP de {{name}}",
-  "ipReportLookupHint": "Al comprobarla, esta IP de salida se envía a ip.net.coffee."
+  "ipReportLookupHint": "Al comprobarla, esta IP de salida se envía a ip.net.coffee.",
+  "allocationImageInputM": "Entrada de imagen · M",
+  "allocationImageInputHint": "Para solicitudes de modelos de imagen: la parte de imagen de los tokens de entrada, cobrada a la tarifa de entrada de imagen. Déjalo vacío en otro caso."
 }

@@ -1595,5 +1595,7 @@
   "ipReportPageHint": "Die IP-Reinheit wird nur auf Anfrage abgefragt; dabei erhält ip.net.coffee diese Ausgangs-IP, und das Ergebnis wird sechs Stunden zwischengespeichert.",
   "ipReportLookup": "IP-Reinheit prüfen",
   "ipReportLookupNamed": "IP-Reinheit für {{name}} prüfen",
-  "ipReportLookupHint": "Beim Prüfen wird diese Ausgangs-IP an ip.net.coffee gesendet."
+  "ipReportLookupHint": "Beim Prüfen wird diese Ausgangs-IP an ip.net.coffee gesendet.",
+  "allocationImageInputM": "Bildeingabe · M",
+  "allocationImageInputHint": "Für Anfragen an Bildmodelle: der Bildanteil der Eingabetokens, abgerechnet zum Bildeingabepreis. Sonst leer lassen."
 }
