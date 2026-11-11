@@ -3,16 +3,17 @@ import { z } from 'zod'
 import { authKey, type AuthState } from './auth'
 import { ApiError, request } from './request'
 
-const version = z
-  .string()
-  .regex(/^(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$/)
+// Stable fork releases are X.Y.Z or X.Y.Z-revised.N, matching the server's update channel.
+export const stableVersion =
+  /^(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})(-revised\.[1-9][0-9]{0,5})?$/
+const version = z.string().regex(stableVersion)
 const schema = z.object({
   current_version: z.string().max(64),
   latest_version: z.union([z.literal(''), version]),
   release_url: z
     .string()
     .regex(
-      /^(|https:\/\/github\.com\/murongg\/SubLane\/releases\/tag\/v[0-9.]+)$/,
+      /^(|https:\/\/github\.com\/Alumos\/SubLane\/releases\/tag\/v[0-9.]+(-revised\.[0-9]+)?)$/,
     ),
   checked_at: z.number().int().nonnegative(),
   check_failed: z.boolean(),

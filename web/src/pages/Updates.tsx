@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import {
   checkUpdate,
   installUpdate,
+  stableVersion,
   updateError,
   updatePending,
   updatesOptions,
@@ -58,7 +59,7 @@ function UpdateSettings({ userID }: { userID: number }) {
   const value = query.data
   const busy = value ? updatePending(value) : false
   const error = check.error ?? install.error
-  const stableBuild = value && /^\d+\.\d+\.\d+$/.test(value.current_version)
+  const stableBuild = value && stableVersion.test(value.current_version)
   const result = value?.job
   const status =
     result?.status === 'succeeded' && result.version !== value?.current_version
