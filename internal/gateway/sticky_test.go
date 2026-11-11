@@ -236,3 +236,39 @@ func TestStickinessHonorsBindingsMadeBeforeOptIn(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizedBindingsSurviveOptOut(t *testing.T) {
+	s, _, _ := stickyGateway(t, true)
+	ctx := context.Background()
+	raw := `{"device_id":"synthetic","session_id":"synthetic-opt-out"}`
+	hints := withStickyHints(ctx, stickyHints{Session: "claude:synthetic-opt-out", Replace: true})
+	original, _, err := s.selectAllocationAccount(hints, 1, 1, raw, "", "synthetic-model", Responses, 0, pinnedAffinity, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, _, _ = stickyGatewayFrom(t, s, false)
+	if _, err := s.accounts.SetEnabled(ctx, original, false); err != nil {
+		t.Fatal(err)
+	}
+	// Turning the setting off must not turn a bound continuation into a new session.
+	got, _, err := s.selectAllocationAccount(hints, 1, 1, raw, "", "synthetic-model", Responses, 0, pinnedAffinity, "")
+	if err == nil || got != original {
+		t.Fatalf("normalized binding was dropped after opt-out: %q %v", got, err)
+	}
+	if _, err := s.accounts.SetEnabled(ctx, original, true); err != nil {
+		t.Fatal(err)
+	}
+	if got, _, err := s.selectAllocationAccount(hints, 1, 1, raw, "", "synthetic-model", Responses, 0, pinnedAffinity, ""); err != nil || got != original {
+		t.Fatal("continuation left its normalized binding", got, err)
+	}
+	// With the setting off, unbound conversations keep using their raw key and create no normalized binding.
+	fresh := withStickyHints(ctx, stickyHints{Session: "claude:synthetic-unbound", Replace: true})
+	if _, _, err := s.selectAllocationAccount(fresh, 1, 1, `{"session_id":"synthetic-unbound"}`, "", "synthetic-model", Responses, 0, pinnedAffinity, ""); err != nil {
+		t.Fatal(err)
+	}
+	normalized := sessionDigest(1, 1, "claude:synthetic-unbound")
+	var count int
+	if err := s.db.QueryRow("SELECT count(*) FROM account_affinity WHERE session_hash=?", normalized[:]).Scan(&count); err != nil || count != 0 {
+		t.Fatal("opt-out created a normalized binding", count, err)
+	}
+}

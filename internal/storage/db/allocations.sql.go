@@ -463,18 +463,19 @@ func (q *Queries) DeleteAllocationScheme(ctx context.Context, id int64) (int64, 
 }
 
 const finishAllocationEntry = `-- name: FinishAllocationEntry :exec
-UPDATE allocation_entries SET finished_at=?,state=?,input_tokens=?,output_tokens=?,cached_tokens=?,cost=?,manual=? WHERE request_id=?
+UPDATE allocation_entries SET finished_at=?1,state=?2,input_tokens=?3,output_tokens=?4,cached_tokens=?5,image_input_tokens=?6,cost=?7,manual=?8 WHERE request_id=?9
 `
 
 type FinishAllocationEntryParams struct {
-	FinishedAt   int64
-	State        string
-	InputTokens  int64
-	OutputTokens int64
-	CachedTokens int64
-	Cost         int64
-	Manual       int64
-	RequestID    string
+	FinishedAt       int64
+	State            string
+	InputTokens      int64
+	OutputTokens     int64
+	CachedTokens     int64
+	ImageInputTokens int64
+	Cost             int64
+	Manual           int64
+	RequestID        string
 }
 
 func (q *Queries) FinishAllocationEntry(ctx context.Context, arg FinishAllocationEntryParams) error {
@@ -484,6 +485,7 @@ func (q *Queries) FinishAllocationEntry(ctx context.Context, arg FinishAllocatio
 		arg.InputTokens,
 		arg.OutputTokens,
 		arg.CachedTokens,
+		arg.ImageInputTokens,
 		arg.Cost,
 		arg.Manual,
 		arg.RequestID,
@@ -492,7 +494,7 @@ func (q *Queries) FinishAllocationEntry(ctx context.Context, arg FinishAllocatio
 }
 
 const getAllocationEntry = `-- name: GetAllocationEntry :one
-SELECT request_id, scheme_id, revision_id, user_id, account_id, model, mode, window_start, reset_at, started_at, finished_at, state, input_tokens, output_tokens, cached_tokens, cost, manual FROM allocation_entries WHERE request_id=?
+SELECT request_id, scheme_id, revision_id, user_id, account_id, model, mode, window_start, reset_at, started_at, finished_at, state, input_tokens, output_tokens, cached_tokens, cost, manual, image_input_tokens FROM allocation_entries WHERE request_id=?
 `
 
 func (q *Queries) GetAllocationEntry(ctx context.Context, requestID string) (AllocationEntry, error) {
@@ -516,6 +518,7 @@ func (q *Queries) GetAllocationEntry(ctx context.Context, requestID string) (All
 		&i.CachedTokens,
 		&i.Cost,
 		&i.Manual,
+		&i.ImageInputTokens,
 	)
 	return i, err
 }
@@ -621,7 +624,7 @@ func (q *Queries) GetTenantAllocationScheme(ctx context.Context, arg GetTenantAl
 }
 
 const listAllocationPending = `-- name: ListAllocationPending :many
-SELECT request_id, scheme_id, revision_id, user_id, account_id, model, mode, window_start, reset_at, started_at, finished_at, state, input_tokens, output_tokens, cached_tokens, cost, manual FROM allocation_entries WHERE scheme_id=?1 AND (?2=0 OR user_id=?2) AND state='pending' ORDER BY started_at DESC,request_id DESC LIMIT 256
+SELECT request_id, scheme_id, revision_id, user_id, account_id, model, mode, window_start, reset_at, started_at, finished_at, state, input_tokens, output_tokens, cached_tokens, cost, manual, image_input_tokens FROM allocation_entries WHERE scheme_id=?1 AND (?2=0 OR user_id=?2) AND state='pending' ORDER BY started_at DESC,request_id DESC LIMIT 256
 `
 
 type ListAllocationPendingParams struct {
@@ -656,6 +659,7 @@ func (q *Queries) ListAllocationPending(ctx context.Context, arg ListAllocationP
 			&i.CachedTokens,
 			&i.Cost,
 			&i.Manual,
+			&i.ImageInputTokens,
 		); err != nil {
 			return nil, err
 		}

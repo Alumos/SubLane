@@ -1826,6 +1826,17 @@ func TestManualSettlementChargesImageInputAtImageRate(t *testing.T) {
 	if cost != 35_825_000 {
 		t.Fatalf("manual settlement ignored the image input split: %d", cost)
 	}
+	// An identical retry succeeds; the same totals with another image split are a conflict.
+	if err := s.Settle(ctx, 9, r.ID, Completion{Input: 1_000_000, ImageInput: 400_000, Cached: 100_000, Output: 1_000_000}); err != nil {
+		t.Fatal("identical settlement retry failed", err)
+	}
+	if err := s.Settle(ctx, 9, r.ID, Completion{Input: 1_000_000, ImageInput: 600_000, Cached: 100_000, Output: 1_000_000}); !errors.Is(err, ErrSettlement) {
+		t.Fatal("a different image split was treated as a retry", err)
+	}
+	var stored, image int64
+	if err := conn.QueryRow(`SELECT cost, image_input_tokens FROM allocation_entries WHERE request_id=?`, r.ID).Scan(&stored, &image); err != nil || stored != 35_825_000 || image != 400_000 {
+		t.Fatal("settlement details changed", stored, image, err)
+	}
 	overlap := r
 	overlap.ID = "synthetic-image-overlap"
 	if err := Begin(ctx, q, overlap, now.Unix(), time.UTC); err != nil {

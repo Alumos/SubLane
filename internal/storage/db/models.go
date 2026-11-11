@@ -60,23 +60,24 @@ type AlertState struct {
 }
 
 type AllocationEntry struct {
-	RequestID    string
-	SchemeID     int64
-	RevisionID   int64
-	UserID       int64
-	AccountID    string
-	Model        string
-	Mode         string
-	WindowStart  int64
-	ResetAt      int64
-	StartedAt    int64
-	FinishedAt   int64
-	State        string
-	InputTokens  int64
-	OutputTokens int64
-	CachedTokens int64
-	Cost         int64
-	Manual       int64
+	RequestID        string
+	SchemeID         int64
+	RevisionID       int64
+	UserID           int64
+	AccountID        string
+	Model            string
+	Mode             string
+	WindowStart      int64
+	ResetAt          int64
+	StartedAt        int64
+	FinishedAt       int64
+	State            string
+	InputTokens      int64
+	OutputTokens     int64
+	CachedTokens     int64
+	Cost             int64
+	Manual           int64
+	ImageInputTokens int64
 }
 
 type AllocationRevision struct {
