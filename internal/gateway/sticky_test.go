@@ -12,6 +12,15 @@ import (
 func stickyGateway(t *testing.T, sticky bool) (*Service, string, string) {
 	t.Helper()
 	s, parent, other := reviewGateway(t)
+	return stickyGatewayFrom(t, s, sticky, parent, other)
+}
+
+func stickyGatewayFrom(t *testing.T, s *Service, sticky bool, ids ...string) (*Service, string, string) {
+	t.Helper()
+	parent, other := "", ""
+	if len(ids) == 2 {
+		parent, other = ids[0], ids[1]
+	}
 	detail, err := groups.New(s.db).Get(context.Background(), 1)
 	if err != nil {
 		t.Fatal(err)
@@ -190,5 +199,40 @@ func TestDerivedPreferencesNeverBlockExplicitSessions(t *testing.T) {
 	// With the table full of explicit bindings, preferences are skipped rather than rejected.
 	if got := openSticky(t, s, http.Header{}, `{"model":"synthetic-model","input":[{"role":"user","content":"Another synthetic opening"}]}`); got == "" {
 		t.Fatal("derived request was rejected")
+	}
+}
+
+func TestStickinessHonorsBindingsMadeBeforeOptIn(t *testing.T) {
+	s, _, _ := stickyGateway(t, false)
+	ctx := context.Background()
+	raw := `{"device_id":"synthetic","session_id":"synthetic-claude-session"}`
+	original, _, err := s.selectAccount(ctx, 1, 1, raw, "", "synthetic-model", Responses)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, _, _ = stickyGatewayFrom(t, s, true)
+	if _, err := s.accounts.SetEnabled(ctx, original, false); err != nil {
+		t.Fatal(err)
+	}
+	hints := withStickyHints(ctx, stickyHints{Session: "claude:synthetic-claude-session", Replace: true})
+	// The raw metadata binding stays authoritative; provider state must not move to a fallback.
+	got, _, err := s.selectAllocationAccount(hints, 1, 1, raw, "", "synthetic-model", Responses, 0, pinnedAffinity, "")
+	if err == nil || got != original {
+		t.Fatalf("bound conversation moved after opt-in: %q %v", got, err)
+	}
+	if _, err := s.accounts.SetEnabled(ctx, original, true); err != nil {
+		t.Fatal(err)
+	}
+	// Unbound conversations adopt the normalized key, shared by the whole agent tree.
+	fresh := withStickyHints(ctx, stickyHints{Session: "claude:synthetic-new-session", Replace: true})
+	first, _, err := s.selectAllocationAccount(fresh, 1, 1, `{"session_id":"synthetic-new-session","agent_id":"a"}`, "", "synthetic-model", Responses, 0, pinnedAffinity, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, agent := range []string{"b", "c", "d"} {
+		got, _, err := s.selectAllocationAccount(fresh, 1, 1, `{"session_id":"synthetic-new-session","agent_id":"`+agent+`"}`, "", "synthetic-model", Responses, 0, pinnedAffinity, "")
+		if err != nil || got != first {
+			t.Fatal("agent tree did not share the normalized binding", agent, got, err)
+		}
 	}
 }

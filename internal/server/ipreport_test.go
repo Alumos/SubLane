@@ -97,3 +97,36 @@ func TestIPReportCacheNeverDisclosesOnReadAndPacesLookups(t *testing.T) {
 		t.Fatal("cache is unbounded", len(cache.entries))
 	}
 }
+
+func TestIPReportCacheRejectsNewIPsWhenEverySlotIsInFlight(t *testing.T) {
+	release := make(chan struct{})
+	var calls atomic.Int32
+	cache := &ipReportCache{entries: map[string]*ipReportEntry{}, now: time.Now, lookup: func(_ context.Context, ip string) (upstream.IPReport, error) {
+		calls.Add(1)
+		<-release
+		return upstream.IPReport{IP: ip}, nil
+	}}
+	var group sync.WaitGroup
+	for i := range ipReportEntries {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			_, _, _ = cache.fetch(context.Background(), fmt.Sprintf("192.0.2.%d", i))
+		}()
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for int(calls.Load()) < ipReportEntries && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if _, _, err := cache.fetch(context.Background(), "198.51.100.200"); !errors.Is(err, errIPReportPaced) {
+		t.Fatal("a new IP was admitted while every slot was in flight", err)
+	}
+	cache.mu.Lock()
+	size := len(cache.entries)
+	cache.mu.Unlock()
+	close(release)
+	group.Wait()
+	if size > ipReportEntries || int(calls.Load()) != ipReportEntries {
+		t.Fatal("cache exceeded its bound", size, calls.Load())
+	}
+}

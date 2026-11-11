@@ -62,7 +62,11 @@ func (c *ipReportCache) fetch(ctx context.Context, ip string) (upstream.IPReport
 	now := c.now()
 	entry := c.entries[ip]
 	if entry == nil {
-		c.evictLocked()
+		if !c.makeRoomLocked() {
+			// Every slot holds an in-flight lookup; admitting another IP would exceed the bound.
+			c.mu.Unlock()
+			return upstream.IPReport{}, ipReportCooldown, errIPReportPaced
+		}
 		entry = &ipReportEntry{}
 		c.entries[ip] = entry
 	}
@@ -111,10 +115,11 @@ func (c *ipReportCache) fetch(ctx context.Context, ip string) (upstream.IPReport
 	return report, 0, nil
 }
 
+// makeRoomLocked reports whether a new entry fits, evicting the oldest idle entry when full.
 // Called with the lock held; in-flight entries are never evicted.
-func (c *ipReportCache) evictLocked() {
+func (c *ipReportCache) makeRoomLocked() bool {
 	if len(c.entries) < ipReportEntries {
-		return
+		return true
 	}
 	oldest := ""
 	for key, value := range c.entries {
@@ -125,9 +130,11 @@ func (c *ipReportCache) evictLocked() {
 			oldest = key
 		}
 	}
-	if oldest != "" {
-		delete(c.entries, oldest)
+	if oldest == "" {
+		return false
 	}
+	delete(c.entries, oldest)
+	return true
 }
 
 func (h *proxyHTTP) exitIP(w http.ResponseWriter, r *http.Request) (string, bool) {

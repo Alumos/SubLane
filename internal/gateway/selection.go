@@ -90,7 +90,21 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	}
 	derived := false
 	if hints, ok := stickyFrom(ctx); ok && policy.Routing.SessionSticky {
-		if hints.Session != "" && (session == "" || hints.Replace) {
+		normalize := hints.Session != "" && (session == "" || hints.Replace)
+		if normalize && session != "" {
+			// A conversation bound under its raw metadata key before opt-in keeps that binding:
+			// provider-held state must continue on its original account.
+			rawScope := provider
+			if rawScope == "" {
+				rawScope = "auto"
+			}
+			bound, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: digest[:], Now: s.now().Unix()}, rawScope)
+			if err != nil && !errors.Is(err, ErrAffinityUnavailable) {
+				return "", digest, err
+			}
+			normalize = bound == nil && err == nil
+		}
+		if normalize {
 			session, derived = hints.Session, hints.Derived
 			digest = sessionDigest(userID, groupID, session)
 			if derived {

@@ -1595,5 +1595,7 @@
   "ipReportPageHint": "IP 청정도는 직접 요청할 때만 조회하며, 이때 출구 IP가 ip.net.coffee로 전송되고 결과는 6시간 동안 캐시됩니다.",
   "ipReportLookup": "IP 청정도 확인",
   "ipReportLookupNamed": "{{name}}의 IP 청정도 확인",
-  "ipReportLookupHint": "확인하면 이 출구 IP가 ip.net.coffee로 전송됩니다."
+  "ipReportLookupHint": "확인하면 이 출구 IP가 ip.net.coffee로 전송됩니다.",
+  "allocationImageInputM": "이미지 입력 · M",
+  "allocationImageInputHint": "이미지 모델 요청 전용: 입력 토큰 중 이미지 부분이며 이미지 입력 요금으로 청구됩니다. 그 외에는 비워 두세요."
 }
