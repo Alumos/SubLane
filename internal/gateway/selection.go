@@ -89,20 +89,43 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 		return "", digest, err
 	}
 	derived := false
-	if hints, ok := stickyFrom(ctx); ok && policy.Routing.SessionSticky {
-		normalize := hints.Session != "" && (session == "" || hints.Replace)
-		if normalize && session != "" {
-			// A conversation bound under its raw metadata key before opt-in keeps that binding:
-			// provider-held state must continue on its original account.
-			rawScope := provider
-			if rawScope == "" {
-				rawScope = "auto"
+	if hints, ok := stickyFrom(ctx); ok {
+		sticky := policy.Routing.SessionSticky
+		bindingScope := provider
+		if bindingScope == "" {
+			bindingScope = "auto"
+		}
+		// bound reports whether a key already owns a binding; ambiguous legacy bindings count as bound.
+		bound := func(hash [32]byte) (bool, error) {
+			binding, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: hash[:], Now: s.now().Unix()}, bindingScope)
+			if errors.Is(err, ErrAffinityUnavailable) {
+				return true, nil
 			}
-			bound, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: digest[:], Now: s.now().Unix()}, rawScope)
-			if err != nil && !errors.Is(err, ErrAffinityUnavailable) {
-				return "", digest, err
+			return binding != nil, err
+		}
+		normalize := false
+		switch {
+		case hints.Session == "" || session != "" && !hints.Replace:
+		case hints.Derived:
+			// Preferences are the opt-in feature itself and disappear with the setting.
+			normalize = sticky
+		default:
+			// Explicit Claude conversations keep whichever key already holds their binding, whether the
+			// setting is on or off, so provider-held state never moves when the toggle changes.
+			rawBound := false
+			if session != "" {
+				if rawBound, err = bound(digest); err != nil {
+					return "", digest, err
+				}
 			}
-			normalize = bound == nil && err == nil
+			if !rawBound {
+				normalizedBound, err := bound(sessionDigest(userID, groupID, hints.Session))
+				if err != nil {
+					return "", digest, err
+				}
+				// The setting only decides whether an unbound conversation creates a normalized binding.
+				normalize = normalizedBound || sticky
+			}
 		}
 		if normalize {
 			session, derived = hints.Session, hints.Derived
@@ -113,7 +136,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 			}
 		}
 		// Subagents prefer their parent's resource among admitted candidates, as Codex reviews already do.
-		if parentThread == "" && hints.Parent != "" && hints.Parent != session {
+		if sticky && parentThread == "" && hints.Parent != "" && hints.Parent != session {
 			parentThread = hints.Parent
 		}
 	}
