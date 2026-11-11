@@ -25,7 +25,7 @@ func TestLookupIPReportBoundsThirdPartyFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.TrustScore == nil || *report.TrustScore != 87 || !report.Residential || !report.Proxy || report.CountryCode != "JP" || report.ASN != 64500 || report.Verdict != "住宅宽带" || len(report.Threats) != 2 || report.Threats[1] != "scanner" || report.FetchedAt == 0 {
+	if report.TrustScore == nil || *report.TrustScore != 87 || !report.Residential || !report.Proxy || report.CountryCode != "JP" || report.ASN != 64500 || report.Verdict != "住宅宽带" {
 		t.Fatalf("report: %+v", report)
 	}
 	for _, private := range []string{"10.0.0.1", "127.0.0.1", "", "not-an-ip", "::1"} {

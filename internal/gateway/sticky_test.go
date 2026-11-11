@@ -12,15 +12,13 @@ import (
 func stickyGateway(t *testing.T, sticky bool) (*Service, string, string) {
 	t.Helper()
 	s, parent, other := reviewGateway(t)
-	return stickyGatewayFrom(t, s, sticky, parent, other)
+	setSticky(t, s, sticky)
+	return s, parent, other
 }
 
-func stickyGatewayFrom(t *testing.T, s *Service, sticky bool, ids ...string) (*Service, string, string) {
+// setSticky toggles session stickiness on the fixture's group, keeping its resources.
+func setSticky(t *testing.T, s *Service, sticky bool) {
 	t.Helper()
-	parent, other := "", ""
-	if len(ids) == 2 {
-		parent, other = ids[0], ids[1]
-	}
 	detail, err := groups.New(s.db).Get(context.Background(), 1)
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +26,6 @@ func stickyGatewayFrom(t *testing.T, s *Service, sticky bool, ids ...string) (*S
 	if _, err := groups.New(s.db).Save(context.Background(), 1, groups.Input{Name: detail.Name, Enabled: true, AccountIDs: detail.AccountIDs, Routing: &groups.Routing{Preference: "protocol", SessionSticky: sticky}}); err != nil {
 		t.Fatal(err)
 	}
-	return s, parent, other
 }
 
 func openSticky(t *testing.T, s *Service, headers http.Header, body string) string {
@@ -210,7 +207,7 @@ func TestStickinessHonorsBindingsMadeBeforeOptIn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, _, _ = stickyGatewayFrom(t, s, true)
+	setSticky(t, s, true)
 	if _, err := s.accounts.SetEnabled(ctx, original, false); err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +243,7 @@ func TestNormalizedBindingsSurviveOptOut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, _, _ = stickyGatewayFrom(t, s, false)
+	setSticky(t, s, false)
 	if _, err := s.accounts.SetEnabled(ctx, original, false); err != nil {
 		t.Fatal(err)
 	}

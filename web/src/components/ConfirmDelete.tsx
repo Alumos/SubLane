@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { LoaderCircle } from 'lucide-react'
-import { deleteGroup, groupDeleteErrorKey, type Group } from '@/lib/groups'
 import { Button } from './ui/Button'
 import {
   Dialog,
@@ -12,18 +11,27 @@ import {
   DialogTitle,
 } from './ui/Dialog'
 
-export function DeleteGroup({
-  group,
+// Destructive confirmation shared by resources that delete with one request and no extra input.
+export function ConfirmDelete({
+  title,
+  description,
+  action,
+  remove,
+  errorText,
   onClose,
   onDeleted,
 }: {
-  group: Pick<Group, 'id' | 'name'>
+  title: string
+  description: string
+  action: string
+  remove: () => Promise<unknown>
+  errorText: (error: Error) => string
   onClose: () => void
   onDeleted: () => Promise<void>
 }) {
   const { t } = useTranslation()
   const mutation = useMutation({
-    mutationFn: () => deleteGroup(group.id),
+    mutationFn: remove,
     onSuccess: async () => {
       await onDeleted()
       onClose()
@@ -47,14 +55,12 @@ export function DeleteGroup({
         }}
       >
         <DialogHeader>
-          <DialogTitle>{t('deleteGroupTitle')}</DialogTitle>
-          <DialogDescription>
-            {t('deleteGroupDescription', { name: group.name })}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {mutation.isError && (
           <p role="alert" className="text-sm text-error">
-            {t(groupDeleteErrorKey(mutation.error))}
+            {errorText(mutation.error)}
           </p>
         )}
         <DialogFooter>
@@ -76,7 +82,7 @@ export function DeleteGroup({
                 aria-hidden="true"
               />
             )}
-            {t('deleteGroup')}
+            {action}
           </Button>
         </DialogFooter>
       </DialogContent>

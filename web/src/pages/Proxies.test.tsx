@@ -277,11 +277,7 @@ it('imports multiple proxies and displays a checked exit location', async () => 
             country: 'United States',
             region: 'Test region',
             city: 'Test city',
-            rdns: '',
-            abuser_level: 'safe',
             verdict: '',
-            threats: [],
-            fetched_at: 1900000000,
           }),
         )
       if (url === '/api/proxies') return Promise.resolve(response({ proxies }))
