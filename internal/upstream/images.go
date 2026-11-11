@@ -89,7 +89,8 @@ func (c *Client) Images(ctx context.Context, credential accounts.Credential, raw
 		}
 		return nil, ErrUpstream
 	}
-	return &Stream{Response: response, registry: c.registry, model: model, original: raw, request: body}, nil
+	// Images responses are complete JSON documents; they never use stream translation state.
+	return &Stream{Response: response}, nil
 }
 
 // MultipartImageEdit converts an OpenAI multipart image edit into the JSON form the Codex endpoint accepts.

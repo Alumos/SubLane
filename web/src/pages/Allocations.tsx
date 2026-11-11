@@ -9,6 +9,8 @@ import {
   saveScheme,
   previewInitial,
   setSchemeEnabled,
+  deleteScheme,
+  allocationDeleteErrorKey,
   modeLabels,
   allocationErrorKey,
   type Scheme,
@@ -19,7 +21,7 @@ import { SchemeForm } from '@/components/SchemeForm'
 import { AllocationPriceWarning } from '@/components/AllocationPriceWarning'
 import { AllocationReport } from '@/components/AllocationReport'
 import { AllocationSchedule } from '@/components/AllocationSchedule'
-import { DeleteAllocation } from '@/components/DeleteAllocation'
+import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { Button } from '@/components/ui/Button'
 import { Status } from '@/components/Status'
 import { formatInstanceDate, useTimeZone } from '@/lib/timezone'
@@ -415,8 +417,14 @@ export function Allocations() {
         </div>
       )}
       {removing && (
-        <DeleteAllocation
-          scheme={removing}
+        <ConfirmDelete
+          title={t('allocationDeleteTitle')}
+          description={t('allocationDeleteDescription', {
+            name: removing.name,
+          })}
+          action={t('allocationDelete')}
+          remove={() => deleteScheme(removing.id)}
+          errorText={(error) => t(allocationDeleteErrorKey(error))}
           onClose={() => setRemoving(null)}
           onDeleted={async () => {
             await Promise.all([

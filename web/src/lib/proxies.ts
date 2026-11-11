@@ -123,11 +123,7 @@ const ipReportSchema = z.object({
   country: z.string().max(64).default(''),
   region: z.string().max(64).default(''),
   city: z.string().max(64).default(''),
-  rdns: z.string().max(253).default(''),
-  abuser_level: z.string().max(32).default(''),
   verdict: z.string().max(48).default(''),
-  threats: z.array(z.string().max(48)).max(8).default([]),
-  fetched_at: z.number().int().positive(),
 })
 export type IPReport = z.infer<typeof ipReportSchema>
 

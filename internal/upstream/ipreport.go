@@ -21,29 +21,25 @@ var IPReportClient = &http.Client{Timeout: 15 * time.Second}
 
 // IPReport is a bounded subset of the third-party lookup. Unknown values stay empty or nil.
 type IPReport struct {
-	IP             string   `json:"ip"`
-	TrustScore     *int64   `json:"trust_score"`
-	CompanyType    string   `json:"company_type"`
-	Residential    bool     `json:"residential"`
-	Datacenter     bool     `json:"datacenter"`
-	Mobile         bool     `json:"mobile"`
-	VPN            bool     `json:"vpn"`
-	Proxy          bool     `json:"proxy"`
-	Tor            bool     `json:"tor"`
-	Abuser         bool     `json:"abuser"`
-	Crawler        bool     `json:"crawler"`
-	ASN            int64    `json:"asn"`
-	ASOrganization string   `json:"as_organization"`
-	ISP            string   `json:"isp"`
-	CountryCode    string   `json:"country_code"`
-	Country        string   `json:"country"`
-	Region         string   `json:"region"`
-	City           string   `json:"city"`
-	RDNS           string   `json:"rdns"`
-	AbuserLevel    string   `json:"abuser_level"`
-	Verdict        string   `json:"verdict"`
-	Threats        []string `json:"threats"`
-	FetchedAt      int64    `json:"fetched_at"`
+	IP             string `json:"ip"`
+	TrustScore     *int64 `json:"trust_score"`
+	CompanyType    string `json:"company_type"`
+	Residential    bool   `json:"residential"`
+	Datacenter     bool   `json:"datacenter"`
+	Mobile         bool   `json:"mobile"`
+	VPN            bool   `json:"vpn"`
+	Proxy          bool   `json:"proxy"`
+	Tor            bool   `json:"tor"`
+	Abuser         bool   `json:"abuser"`
+	Crawler        bool   `json:"crawler"`
+	ASN            int64  `json:"asn"`
+	ASOrganization string `json:"as_organization"`
+	ISP            string `json:"isp"`
+	CountryCode    string `json:"country_code"`
+	Country        string `json:"country"`
+	Region         string `json:"region"`
+	City           string `json:"city"`
+	Verdict        string `json:"verdict"`
 }
 
 func boundedText(value string, limit int) string {
@@ -110,14 +106,9 @@ func LookupIPReport(ctx context.Context, ip string) (IPReport, error) {
 		Country     string          `json:"country"`
 		Region      string          `json:"region"`
 		City        string          `json:"city"`
-		RDNS        string          `json:"rdns"`
 		Verdict     *struct {
 			Label string `json:"label"`
 		} `json:"ai_verdict"`
-		Intelligence *struct {
-			Level   string            `json:"abuser_level"`
-			Threats []json.RawMessage `json:"threats"`
-		} `json:"intelligence"`
 	}
 	if json.Unmarshal(raw, &payload) != nil {
 		return IPReport{}, ErrResponse
@@ -127,7 +118,7 @@ func LookupIPReport(ctx context.Context, ip string) (IPReport, error) {
 	}
 	report := IPReport{IP: address.String(), CompanyType: boundedText(payload.CompanyType, 32), Residential: payload.Residential, Datacenter: payload.Datacenter, Mobile: payload.Mobile, VPN: payload.VPN, Proxy: payload.Proxy, Tor: payload.Tor, Abuser: payload.Abuser, Crawler: payload.Crawler,
 		ASOrganization: boundedText(payload.ASOrg, 128), ISP: boundedText(payload.ISP, 128), CountryCode: strings.ToUpper(boundedText(payload.CountryCode, 2)), Country: boundedText(payload.Country, 64),
-		Region: boundedText(payload.Region, 64), City: boundedText(payload.City, 64), RDNS: boundedText(payload.RDNS, 253), Threats: []string{}, FetchedAt: time.Now().Unix()}
+		Region: boundedText(payload.Region, 64), City: boundedText(payload.City, 64)}
 	if payload.ASN > 0 && payload.ASN < 1<<32 {
 		report.ASN = payload.ASN
 	}
@@ -139,30 +130,6 @@ func LookupIPReport(ctx context.Context, ip string) (IPReport, error) {
 	}
 	if payload.Verdict != nil {
 		report.Verdict = boundedText(payload.Verdict.Label, 48)
-	}
-	if payload.Intelligence != nil {
-		report.AbuserLevel = boundedText(payload.Intelligence.Level, 32)
-		for _, raw := range payload.Intelligence.Threats {
-			if len(report.Threats) == 8 {
-				break
-			}
-			var name string
-			if json.Unmarshal(raw, &name) != nil {
-				var named struct {
-					Name string `json:"name"`
-					Type string `json:"type"`
-				}
-				if json.Unmarshal(raw, &named) == nil {
-					name = named.Name
-					if name == "" {
-						name = named.Type
-					}
-				}
-			}
-			if name = boundedText(name, 48); name != "" {
-				report.Threats = append(report.Threats, name)
-			}
-		}
 	}
 	return report, nil
 }
