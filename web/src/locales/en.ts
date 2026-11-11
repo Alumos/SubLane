@@ -1,7 +1,7 @@
 export const en = {
   updatesTitle: 'Software updates',
   updatesDescription:
-    'Check official SubLane releases and update this instance. Only the platform owner can install updates.',
+    'Check releases of this SubLane fork (Alumos/SubLane) and update this instance. Only the platform owner can install updates.',
   updateCurrent: 'Current version',
   updateLatest: 'Latest stable release',
   updateCheck: 'Check for updates',
@@ -1145,7 +1145,6 @@ export const en = {
   apiUpstreamProxyHint:
     'Model discovery and generation use the selected server network route.',
   connectAPI: 'Connect API',
-  replaceAPIKey: 'Replace API key',
   upstreamBaseURL: 'Base URL',
   upstreamAPIKey: 'Upstream API key',
   apiUpstreamDescription:
@@ -1775,8 +1774,6 @@ export const en = {
   proxyConnectionFailed: 'Connection failed',
   proxyLookupUnavailable: 'Location lookup unavailable',
   proxyLookupRateLimited: 'Location lookup rate limited',
-  proxyExitIP: 'Exit IP: {{ip}}',
-  proxyLocation: 'Location: {{location}}',
   proxyLocationUnknown: 'Unknown',
   proxyLatency: '{{latency}} ms',
   proxyChanged: 'The proxy changed during the test. Run it again.',

@@ -26,7 +26,7 @@ valid_job() {
   jq -e '
     type == "object" and keys == ["id","status","updated_at","version"] and
     (.id | type == "string" and test("^[a-f0-9]{32}$")) and
-    (.version | type == "string" and test("^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})$")) and
+    (.version | type == "string" and test("^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})(-revised\\.[1-9][0-9]{0,5})?$")) and
     (.updated_at | type == "number" and . > 0 and floor == .) and
     (.status == "queued" or .status == "running" or .status == "succeeded" or .status == "failed" or .status == "interrupted")
   ' "$1" >/dev/null 2>&1
@@ -38,14 +38,16 @@ is_upgrade() {
     installed=$("$installation/sublane" --version) || return 1
   elif [[ -f $installation/.env && ! -L $installation/.env ]]; then
     installed=$(awk -F= '$1 == "SUBLANE_IMAGE" { count++; value=$2 } END { if(count != 1) exit 1; print value }' "$installation/.env") || return 1
-    [[ $installed == ghcr.io/murongg/sublane:* ]] || return 1
-    installed=${installed#ghcr.io/murongg/sublane:}
+    [[ $installed == ghcr.io/alumos/sublane:* ]] || return 1
+    installed=${installed#ghcr.io/alumos/sublane:}
   else
     return 1
   fi
+  # Fork revisions order after their base release: (major, minor, patch, revision).
   jq -ne --arg current "$installed" --arg target "$request_version" '
-    ($current | test("^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})$")) and
-    (($target | split(".") | map(tonumber)) > ($current | split(".") | map(tonumber)))
+    def key: split("-revised.") | (.[0] | split(".") | map(tonumber)) + [(.[1] // "0") | tonumber];
+    ($current | test("^(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})\\.(0|[1-9][0-9]{0,5})(-revised\\.[1-9][0-9]{0,5})?$")) and
+    (($target | key) > ($current | key))
   ' >/dev/null
 }
 

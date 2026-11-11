@@ -17,12 +17,12 @@ async function until(predicate,child){
   }
   throw new Error("Synthetic worker did not publish its state");
 }
-function fixture(t,fail=false){
+function fixture(t,fail=false,installed="1.2.0"){
   const dir=realpathSync(mkdtempSync(join(tmpdir(),"sublane-updater-")));
   const privateDir=join(dir,".updater");mkdirSync(privateDir,{mode:0o700});
   const mailbox=join(privateDir,"mailbox");mkdirSync(mailbox,{mode:0o777});
   const calls=join(dir,"args");
-  writeFileSync(join(dir,".env"),"SUBLANE_IMAGE=ghcr.io/murongg/sublane:1.2.0\n");
+  writeFileSync(join(dir,".env"),`SUBLANE_IMAGE=ghcr.io/alumos/sublane:${installed}\n`);
   writeFileSync(join(privateDir,"install.sh"),`#!/bin/bash\nprintf '%s\\n' "$@" > "$UPDATE_TEST_ARGS"\necho 'Synthetic private diagnostic'\nexit ${fail?1:0}\n`,{mode:0o700});
   const child=spawn("bash",[script,"--run",dir],{env:{...process.env,UPDATE_TEST_ARGS:calls},detached:true,stdio:"ignore"});
   t.after(async()=>{
@@ -83,4 +83,14 @@ test("the host worker independently refuses downgrades and repeated installation
   await until(()=>f.status()?.id==="b".repeat(32)&&f.status()?.status==="failed",f.child);
   assert.equal(existsSync(f.calls),false);
   assert.match(readFileSync(join(f.privateDir,"last.log"),"utf8"),/newer stable version/);
+});
+test("fork revisions upgrade within a base release and never repeat the installed revision",async t=>{
+  const f=fixture(t,false,"0.19.2-revised.7");
+  await until(()=>existsSync(join(f.mailbox,"heartbeat")),f.child);
+  f.request({...job,version:"0.19.2-revised.7"});
+  await until(()=>f.status()?.status==="failed"&&!existsSync(join(f.mailbox,"request.json")),f.child);
+  assert.equal(existsSync(f.calls),false);
+  f.request({...job,id:"b".repeat(32),version:"0.19.2-revised.8"});
+  await until(()=>f.status()?.status==="succeeded"&&f.status()?.id==="b".repeat(32),f.child);
+  assert.deepEqual(readFileSync(f.calls,"utf8").trim().split("\n"),["--update","--dir",f.dir,"--version","0.19.2-revised.8","--non-interactive"]);
 });

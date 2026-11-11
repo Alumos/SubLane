@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Releases and images come from this fork so installs and updates stay on its channel.
+install_repository=Alumos/SubLane
 
 fail() {
   printf 'Error: %s\n' "$*" >&2
@@ -232,7 +234,7 @@ release_metadata() {
   install_api_status=$(curl --silent --show-error --location --proto '=https' --proto-redir '=https' \
     --connect-timeout 10 --max-time 120 --retry 2 --header 'Accept: application/vnd.github+json' \
     --output "$install_stage/releases.json" --write-out '%{http_code}' \
-    "https://api.github.com/repos/murongg/SubLane/$1") || fail 'Could not fetch GitHub releases. Retry or pass --version explicitly.'
+    "https://api.github.com/repos/$install_repository/$1") || fail 'Could not fetch GitHub releases. Retry or pass --version explicitly.'
 }
 
 resolve_version() {
@@ -630,8 +632,8 @@ prepare_release() {
   trap 'exit 130' INT TERM
   if [[ -z $install_version ]]; then resolve_version; fi
   validate_version
-  install_release="https://github.com/murongg/SubLane/releases/download/v$install_version"
-  install_image="ghcr.io/murongg/sublane:$install_version"
+  install_release="https://github.com/$install_repository/releases/download/v$install_version"
+  install_image="ghcr.io/alumos/sublane:$install_version"
 }
 
 download_release() {

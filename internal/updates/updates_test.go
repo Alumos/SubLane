@@ -192,3 +192,35 @@ func TestMailboxRefusesSymlinksAndOversizedStatus(t *testing.T) {
 		t.Fatal("oversized status trusted")
 	}
 }
+
+func TestForkRevisionsOrderAfterTheirBaseRelease(t *testing.T) {
+	for _, tc := range []struct {
+		next, current string
+		want          bool
+	}{
+		{"0.19.2-revised.8", "0.19.2-revised.7", true},
+		{"0.19.2-revised.10", "0.19.2-revised.9", true},
+		{"0.19.2-revised.1", "0.19.2", true},
+		{"0.19.3", "0.19.2-revised.9", true},
+		{"0.19.2-revised.7", "0.19.2-revised.7", false},
+		{"0.19.2", "0.19.2-revised.1", false},
+		{"0.19.2-revised.7", "0.20.0", false},
+		{"0.19.2-rc.1", "0.19.1", false},
+		{"0.19.2-revised.01", "0.19.1", false},
+		{"0.19.2-revised.0", "0.19.1", false},
+	} {
+		if got := newer(tc.next, tc.current); got != tc.want {
+			t.Fatal(tc.next, tc.current, got)
+		}
+	}
+	var requested string
+	s := New("0.19.2-revised.7", "", transport(func(r *http.Request) (*http.Response, error) {
+		requested = r.URL.String()
+		return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"tag_name":"v0.19.2-revised.8"}`))}, nil
+	}))
+	defer s.Close()
+	state, err := s.Check(context.Background(), true)
+	if err != nil || !state.Available || requested != "https://api.github.com/repos/Alumos/SubLane/releases/latest" {
+		t.Fatal("fork release was not offered", requested, state, err)
+	}
+}

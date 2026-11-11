@@ -3,7 +3,7 @@ import type { en } from './en'
 export const zh: Record<keyof typeof en, string> = {
   updatesTitle: '软件更新',
   updatesDescription:
-    '检查 SubLane 官方版本并更新当前实例。仅平台所有者可以安装更新。',
+    '检查本 SubLane 修改版（Alumos/SubLane）的发布版本并更新当前实例。仅平台所有者可以安装更新。',
   updateCurrent: '当前版本',
   updateLatest: '最新正式版',
   updateCheck: '检查更新',
@@ -1044,7 +1044,6 @@ export const zh: Record<keyof typeof en, string> = {
   upstreamKeyExpiryUnknown: '上游未提供',
   apiUpstreamProxyHint: '模型发现和生成请求使用所选的服务端网络出口。',
   connectAPI: '接入 API',
-  replaceAPIKey: '更换 API 密钥',
   upstreamBaseURL: 'Base URL',
   upstreamAPIKey: '上游 API 密钥',
   apiUpstreamDescription: '选择平台或自定义服务，填写 API 密钥和 Base URL。',
@@ -1616,8 +1615,6 @@ export const zh: Record<keyof typeof en, string> = {
   proxyConnectionFailed: '连接失败',
   proxyLookupUnavailable: '位置查询不可用',
   proxyLookupRateLimited: '位置查询受限',
-  proxyExitIP: '出口 IP：{{ip}}',
-  proxyLocation: '位置：{{location}}',
   proxyLocationUnknown: '未知',
   proxyLatency: '{{latency}} 毫秒',
   proxyChanged: '检测期间代理已变更，请重新测试。',

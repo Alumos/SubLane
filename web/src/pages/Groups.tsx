@@ -2,9 +2,14 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { FolderClosed, LoaderCircle, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { groupOptions, type Group } from '@/lib/groups'
+import {
+  deleteGroup,
+  groupDeleteErrorKey,
+  groupOptions,
+  type Group,
+} from '@/lib/groups'
 import { CatalogDialog } from '@/components/CatalogDialog'
-import { DeleteGroup } from '@/components/DeleteGroup'
+import { ConfirmDelete } from '@/components/ConfirmDelete'
 import { GroupEditor } from '@/components/GroupEditor'
 import { Button } from '@/components/ui/Button'
 import { Status } from '@/components/Status'
@@ -167,8 +172,12 @@ export function Groups() {
         />
       )}
       {removing && (
-        <DeleteGroup
-          group={removing}
+        <ConfirmDelete
+          title={t('deleteGroupTitle')}
+          description={t('deleteGroupDescription', { name: removing.name })}
+          action={t('deleteGroup')}
+          remove={() => deleteGroup(removing.id)}
+          errorText={(error) => t(groupDeleteErrorKey(error))}
           onClose={() => setRemoving(null)}
           onDeleted={saved}
         />

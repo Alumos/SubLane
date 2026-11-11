@@ -170,7 +170,7 @@ function existing(t, runtime = "docker", mode = "", directory = "sublane") {
     writeFileSync(join(f.target, ".env"), [
       "# Operator settings",
       "COMPOSE_PROJECT_NAME=sublane-synthetic",
-      "SUBLANE_IMAGE=ghcr.io/murongg/sublane:1.2.2",
+      "SUBLANE_IMAGE=ghcr.io/alumos/sublane:1.2.2",
       "SUBLANE_BIND_ADDRESS=127.0.0.1",
       "SUBLANE_PORT=18080",
       "SUBLANE_PUBLIC_URL=https://gateway.example.test",
@@ -310,7 +310,7 @@ test("updates an existing Docker deployment to the latest release while preservi
   for (const call of calls) {
     assert.equal(call.args[call.args.indexOf("--project-name") + 1], "sublane-synthetic");
     assert.equal(realpathSync(call.args[call.args.indexOf("--project-directory") + 1]), realpathSync(f.target));
-    assert.equal(call.image, "ghcr.io/murongg/sublane:1.2.3");
+    assert.equal(call.image, "ghcr.io/alumos/sublane:1.2.3");
     assert.equal(call.port, "18080");
     assert.equal(call.demo, "true");
     assert.equal(call.logLevel, "warn");
@@ -784,7 +784,7 @@ test("installs a pinned release with checksums and waits for healthy Compose sta
   assert.equal(result.status, 0, result.stderr);
   assert.match(
     readFileSync(join(f.target, ".env"), "utf8"),
-    /SUBLANE_IMAGE=ghcr.io\/murongg\/sublane:0\.1\.0-rc\.1/,
+    /SUBLANE_IMAGE=ghcr.io\/alumos\/sublane:0\.1\.0-rc\.1/,
   );
   assert.equal(
     readFileSync(join(f.target, "docker.compose.yaml"), "utf8"),
@@ -813,7 +813,7 @@ test("supports piped execution, explicit versions, paths with spaces and custom 
   );
   assert.equal(result.status, 0, result.stderr);
   const env = readFileSync(join(target, ".env"), "utf8");
-  assert.match(env, /SUBLANE_IMAGE=ghcr.io\/murongg\/sublane:1\.2\.3-beta\.2/);
+  assert.match(env, /SUBLANE_IMAGE=ghcr.io\/alumos\/sublane:1\.2\.3-beta\.2/);
   assert.match(env, /SUBLANE_PORT=18851/);
   assert.match(env, /COMPOSE_PROJECT_NAME=sublane-[a-z0-9-]+/);
   assert.match(result.stdout, /127\.0\.0\.1:18851/);
@@ -1022,7 +1022,7 @@ test("explicit installer settings take precedence over inherited Compose interpo
     .filter((call) => call.args.includes("--project-name"));
   assert.ok(calls.length >= 3);
   for (const call of calls) {
-    assert.equal(call.image, "ghcr.io/murongg/sublane:0.1.0-rc.1");
+    assert.equal(call.image, "ghcr.io/alumos/sublane:0.1.0-rc.1");
     assert.equal(call.port, "8080");
     assert.notEqual(
       call.args[call.args.indexOf("--project-name") + 1],
@@ -1065,7 +1065,7 @@ test("prefers the latest stable release without consulting prereleases", (t) => 
   assert.equal(result.status, 0, result.stderr);
   assert.match(
     readFileSync(join(f.target, ".env"), "utf8"),
-    /SUBLANE_IMAGE=ghcr.io\/murongg\/sublane:1\.2\.3\n/,
+    /SUBLANE_IMAGE=ghcr.io\/alumos\/sublane:1\.2\.3\n/,
   );
   assert.equal(
     f
@@ -1112,7 +1112,7 @@ test("without stable releases, selects the most recently published prerelease ac
   assert.equal(result.status, 0, result.stderr);
   assert.match(
     readFileSync(join(f.target, ".env"), "utf8"),
-    /SUBLANE_IMAGE=ghcr.io\/murongg\/sublane:2\.0\.0-rc\.2\n/,
+    /SUBLANE_IMAGE=ghcr.io\/alumos\/sublane:2\.0\.0-rc\.2\n/,
   );
 });
 
