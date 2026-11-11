@@ -211,7 +211,8 @@ func Finish(ctx context.Context, q *db.Queries, id string, c Completion, now int
 		return nil
 	}
 	if manual {
-		if e.State == "settled" && e.Manual == 1 && e.InputTokens == c.Input && e.OutputTokens == c.Output && e.CachedTokens == c.Cached {
+		// Only an identical breakdown is a retry; a different image split would have charged differently.
+		if e.State == "settled" && e.Manual == 1 && e.InputTokens == c.Input && e.OutputTokens == c.Output && e.CachedTokens == c.Cached && e.ImageInputTokens == c.ImageInput {
 			return nil
 		}
 		if e.State != "pending" || c.Input < e.InputTokens || c.Output < e.OutputTokens {
@@ -248,7 +249,7 @@ func Finish(ctx context.Context, q *db.Queries, id string, c Completion, now int
 		// Partial observations remain available for correction but are not a charge.
 		cost = 0
 	}
-	return q.FinishAllocationEntry(ctx, db.FinishAllocationEntryParams{RequestID: id, FinishedAt: now, State: state, InputTokens: c.Input, OutputTokens: c.Output, CachedTokens: c.Cached, Cost: cost, Manual: bit(manual)})
+	return q.FinishAllocationEntry(ctx, db.FinishAllocationEntryParams{RequestID: id, FinishedAt: now, State: state, InputTokens: c.Input, OutputTokens: c.Output, CachedTokens: c.Cached, ImageInputTokens: c.ImageInput, Cost: cost, Manual: bit(manual)})
 }
 func (s *Service) Settle(ctx context.Context, scheme int64, id string, c Completion) error {
 	tx, err := s.conn.BeginTx(ctx, nil)
