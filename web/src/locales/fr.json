@@ -1552,8 +1552,7 @@
   "sessionStickyHint": "Conserve les conversations sans identifiant de session sur une même ressource grâce à un hachage du prompt initial, et fait préférer aux sous-agents la ressource de leur parent. Les ressources indisponibles basculent toujours. Améliore les succès du cache de prompts.",
   "sessionStickyEnabled": "Affinité de session activée",
   "editChannel": "Modifier le canal",
-  "channelEditDescription": "Modifiez le nom, la plateforme, le protocole, le point de terminaison ou la clé. Le canal conserve ses groupes, limites et historique de requêtes.",
-  "channelEditPlatformHint": "Modifier le point de terminaison ou le protocole actualise le catalogue de modèles et nécessite de revérifier la connexion.",
+  "channelEditDescription": "Renommez le canal ou remplacez sa clé. Pour utiliser un autre point de terminaison ou protocole, ajoutez un nouveau canal afin que la clé enregistrée n’atteigne jamais un autre fournisseur.",
   "channelKeyKeepHint": "Laissez vide pour conserver la clé enregistrée. La clé enregistrée n’est jamais affichée.",
   "saveChannel": "Enregistrer le canal",
   "usageMonthly": "Limite mensuelle",
@@ -1598,5 +1597,8 @@
   "proxyNetworkLabel": "Réseau",
   "proxyBoundAccounts": "Comptes liés",
   "proxyCheckedAt": "Vérifié {{time}}",
-  "ipReportPageHint": "Les scores de pureté proviennent de ip.net.coffee, qui reçoit chaque IP de sortie vérifiée ; les résultats sont conservés six heures."
+  "ipReportPageHint": "La pureté IP n’est consultée que sur demande ; ip.net.coffee reçoit alors cette IP de sortie et le résultat est conservé six heures.",
+  "ipReportLookup": "Vérifier la pureté IP",
+  "ipReportLookupNamed": "Vérifier la pureté IP de {{name}}",
+  "ipReportLookupHint": "La vérification envoie cette IP de sortie à ip.net.coffee."
 }

@@ -212,6 +212,8 @@ ALTER TABLE accounts DROP COLUMN reset_check_at;
 ALTER TABLE accounts DROP COLUMN usage_revision;
 ALTER TABLE account_affinity DROP COLUMN rebound;
 ALTER TABLE account_affinity DROP COLUMN model;
+DROP INDEX account_groups_active_name;
+ALTER TABLE account_affinity DROP COLUMN derived;
 ALTER TABLE account_groups DROP COLUMN session_sticky;
 ALTER TABLE account_groups DROP COLUMN deleted_at;
 ALTER TABLE account_groups DROP COLUMN routing_preference;

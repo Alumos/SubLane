@@ -105,7 +105,8 @@ func normalizeBaseURL(value string) (string, error) {
 	return strings.TrimRight(u.String(), "/"), nil
 }
 
-// APIChannelUpdate edits an API channel in place. An empty APIKey keeps the stored key.
+// APIChannelUpdate renames a channel or replaces its key. An empty APIKey keeps the stored key;
+// BaseURL, Platform and Protocol must match the stored channel.
 type APIChannelUpdate struct {
 	Name     string
 	APIKey   string
@@ -114,8 +115,8 @@ type APIChannelUpdate struct {
 	Protocol string
 }
 
-// UpdateAPIChannel changes channel settings without replacing its resource ID, group membership,
-// limits or conversation bindings. Endpoint and protocol changes invalidate the model catalog.
+// UpdateAPIChannel changes the name or key without replacing the resource ID, group membership,
+// limits or conversation bindings.
 func (s *Service) UpdateAPIChannel(ctx context.Context, id string, input APIChannelUpdate) (Account, error) {
 	name, err := NormalizeName(input.Name)
 	if err != nil {
@@ -151,8 +152,12 @@ func (s *Service) UpdateAPIChannel(ctx context.Context, id string, input APIChan
 	if credential.APIPlatform == "" && credential.APIProtocol == "" {
 		credential.APIPlatform, credential.APIProtocol = previous.APIPlatform, previous.APIProtocol
 	}
-	endpointChanged := previous.BaseURL != credential.BaseURL || previous.APIConfig() != credential.APIConfig()
-	connectionChanged := endpointChanged || credential.AccessToken != previous.AccessToken
+	// Credentials and conversation bindings stay scoped to the original upstream: a stored key must
+	// never be sent to another endpoint or protocol, so those changes still require a new channel.
+	if previous.BaseURL != credential.BaseURL || previous.APIConfig() != credential.APIConfig() {
+		return Account{}, ErrIdentity
+	}
+	connectionChanged := credential.AccessToken != previous.AccessToken
 	status := row.Status
 	if connectionChanged {
 		status = "unverified"
@@ -165,11 +170,6 @@ func (s *Service) UpdateAPIChannel(ctx context.Context, id string, input APIChan
 	q := s.queries.WithTx(tx)
 	if connectionChanged {
 		if err := s.persist(ctx, q, id, credential, status); err != nil {
-			return Account{}, err
-		}
-	}
-	if endpointChanged {
-		if err := q.InvalidateAccountCatalog(ctx, id); err != nil {
 			return Account{}, err
 		}
 	}

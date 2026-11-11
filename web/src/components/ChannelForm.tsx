@@ -140,7 +140,7 @@ export function ChannelForm({
             )}
             searchLabel={t('channelPlatformSearch')}
             emptyLabel={t('channelPlatformNoMatch')}
-            disabled={save.isPending}
+            disabled={Boolean(channel) || save.isPending}
           />
         </div>
         <div className="space-y-2">
@@ -161,13 +161,17 @@ export function ChannelForm({
             )}
             searchLabel={t('channelProtocolSearch')}
             emptyLabel={t('channelProtocolNoMatch')}
-            disabled={platform !== 'custom' || save.isPending}
+            disabled={
+              Boolean(channel) || platform !== 'custom' || save.isPending
+            }
           />
         </div>
       </div>
-      <p className="text-xs leading-5 text-muted-foreground">
-        {t(channel ? 'channelEditPlatformHint' : 'channelPlatformHint')}
-      </p>
+      {!channel && (
+        <p className="text-xs leading-5 text-muted-foreground">
+          {t('channelPlatformHint')}
+        </p>
+      )}
       <div className="space-y-2">
         <label htmlFor="channel-name" className="text-sm font-medium">
           {t('channelName')}
@@ -190,6 +194,7 @@ export function ChannelForm({
           type="url"
           value={baseURL}
           onChange={(event) => setBaseURL(event.target.value)}
+          readOnly={Boolean(channel)}
           disabled={save.isPending}
           autoComplete="off"
           spellCheck={false}
@@ -200,7 +205,7 @@ export function ChannelForm({
           id="channel-endpoint-hint"
           className="text-xs leading-5 text-muted-foreground"
         >
-          {t('upstreamBaseURLHint')}
+          {t(channel ? 'upstreamEndpointLocked' : 'upstreamBaseURLHint')}
         </p>
       </div>
       <div className="space-y-2">

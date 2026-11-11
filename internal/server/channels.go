@@ -115,20 +115,14 @@ func (h *channelHTTP) update(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSONLimit(w, r, &input, 32<<10) {
 		return
 	}
-	id := chi.URLParam(r, "id")
-	before, err := h.service.Get(r.Context(), id)
-	if err != nil {
-		channelError(w, err)
-		return
-	}
-	row, err := h.service.Update(r.Context(), id, input)
+	row, err := h.service.Update(r.Context(), chi.URLParam(r, "id"), input)
 	if err != nil {
 		channelError(w, err)
 		return
 	}
 	writeJSON(w, 200, row)
-	// Endpoint and protocol edits invalidate discovery; refresh it like a new connection.
-	if h.gateway != nil && (before.BaseURL != row.BaseURL || before.Protocol != row.Protocol || before.Platform != row.Platform || input.APIKey != "") {
+	// A replacement key may expose a different model set; refresh discovery like a key rotation.
+	if h.gateway != nil && input.APIKey != "" {
 		_, _ = h.gateway.AccountCatalog(r.Context(), row.ID, false)
 	}
 }

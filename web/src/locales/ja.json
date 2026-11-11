@@ -1547,8 +1547,7 @@
   "sessionStickyHint": "セッション ID のない会話を冒頭プロンプトのハッシュで同じリソースに固定し、サブエージェントには親のリソースを優先させます。利用できないリソースは引き続きフェイルオーバーします。上流のプロンプトキャッシュのヒット率が向上します。",
   "sessionStickyEnabled": "セッション固定オン",
   "editChannel": "チャンネルを編集",
-  "channelEditDescription": "名前、プラットフォーム、プロトコル、エンドポイント、キーを変更します。チャンネルのグループ割り当て、制限、リクエスト履歴は保持されます。",
-  "channelEditPlatformHint": "エンドポイントやプロトコルを変更するとモデルカタログが更新され、接続の再確認が必要になります。",
+  "channelEditDescription": "チャンネル名の変更やキーの差し替えができます。別のエンドポイントやプロトコルを使う場合は、保存済みのキーが別の上流に送られないよう新しいチャンネルを追加してください。",
   "channelKeyKeepHint": "空欄のままにすると保存済みのキーを維持します。保存済みのキーは表示されません。",
   "saveChannel": "チャンネルを保存",
   "usageMonthly": "月間上限",
@@ -1593,5 +1592,8 @@
   "proxyNetworkLabel": "ネットワーク",
   "proxyBoundAccounts": "紐づくアカウント",
   "proxyCheckedAt": "{{time}} に確認",
-  "ipReportPageHint": "IP 純度スコアは ip.net.coffee から取得します（確認済みの出口 IP を送信）。結果は 6 時間キャッシュされます。"
+  "ipReportPageHint": "IP 純度は手動で確認したときだけ取得し、その出口 IP を ip.net.coffee に送信します。結果は 6 時間キャッシュされます。",
+  "ipReportLookup": "IP 純度を確認",
+  "ipReportLookupNamed": "{{name}} の IP 純度を確認",
+  "ipReportLookupHint": "確認すると、この出口 IP が ip.net.coffee に送信されます。"
 }

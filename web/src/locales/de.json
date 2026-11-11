@@ -1547,8 +1547,7 @@
   "sessionStickyHint": "Hält Unterhaltungen ohne Sitzungs-ID über einen Hash des ersten Prompts auf einer Ressource und lässt Subagenten die Ressource ihres Elternteils bevorzugen. Nicht verfügbare Ressourcen werden weiterhin umgangen. Verbessert Prompt-Cache-Treffer beim Anbieter.",
   "sessionStickyEnabled": "Sitzungsbindung aktiv",
   "editChannel": "Kanal bearbeiten",
-  "channelEditDescription": "Ändern Sie Name, Plattform, Protokoll, Endpunkt oder Schlüssel. Der Kanal behält Gruppenzuordnungen, Limits und Anfrageverlauf.",
-  "channelEditPlatformHint": "Eine Änderung von Endpunkt oder Protokoll aktualisiert den Modellkatalog und erfordert eine erneute Verbindungsprüfung.",
+  "channelEditDescription": "Benennen Sie den Kanal um oder ersetzen Sie seinen Schlüssel. Für einen anderen Endpunkt oder ein anderes Protokoll fügen Sie einen neuen Kanal hinzu, damit der gespeicherte Schlüssel nie einen anderen Anbieter erreicht.",
   "channelKeyKeepHint": "Leer lassen, um den gespeicherten Schlüssel zu behalten. Der gespeicherte Schlüssel wird nie angezeigt.",
   "saveChannel": "Kanal speichern",
   "usageMonthly": "Monatslimit",
@@ -1593,5 +1592,8 @@
   "proxyNetworkLabel": "Netz",
   "proxyBoundAccounts": "Verknüpfte Konten",
   "proxyCheckedAt": "Geprüft {{time}}",
-  "ipReportPageHint": "IP-Reinheitswerte stammen von ip.net.coffee (erhält jede geprüfte Ausgangs-IP); Ergebnisse werden sechs Stunden zwischengespeichert."
+  "ipReportPageHint": "Die IP-Reinheit wird nur auf Anfrage abgefragt; dabei erhält ip.net.coffee diese Ausgangs-IP, und das Ergebnis wird sechs Stunden zwischengespeichert.",
+  "ipReportLookup": "IP-Reinheit prüfen",
+  "ipReportLookupNamed": "IP-Reinheit für {{name}} prüfen",
+  "ipReportLookupHint": "Beim Prüfen wird diese Ausgangs-IP an ip.net.coffee gesendet."
 }
