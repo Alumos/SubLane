@@ -2,10 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/murongg/SubLane/internal/upstream"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/murongg/SubLane/internal/groups"
 )
@@ -205,9 +207,22 @@ func TestChannelSettingsCanBeEditedInPlace(t *testing.T) {
 			t.Fatal("edit removed group membership", value)
 		}
 	}
+	if err := f.accounts.SaveCatalog(t.Context(), channel.ID, 0, []string{"synthetic-old-model"}, time.Now().Unix(), upstream.CatalogSource("openai")); err != nil {
+		t.Fatal(err)
+	}
+	var revision int64
+	if err := f.connection.QueryRow(`SELECT models_revision FROM accounts WHERE id=?`, channel.ID).Scan(&revision); err != nil {
+		t.Fatal(err)
+	}
 	rotated := request(h, "PUT", "/api/channels/"+channel.ID, origin, map[string]string{"name": "Synthetic renamed", "api_key": "synthetic-next-key", "base_url": "https://one.example.test/v1", "platform": "custom", "protocol": "openai"}, owner)
 	if rotated.Code != 200 {
 		t.Fatal(rotated.Code, rotated.Body.String())
+	}
+	// A replacement key must not reuse the previous key's model snapshot.
+	var cleared bool
+	var next int64
+	if err := f.connection.QueryRow(`SELECT models_snapshot IS NULL, models_revision FROM accounts WHERE id=?`, channel.ID).Scan(&cleared, &next); err != nil || !cleared || next <= revision {
+		t.Fatal("key replacement kept the old catalog", cleared, next, revision, err)
 	}
 	if stored, err := f.accounts.Prepare(t.Context(), channel.ID, nil); err != nil || stored.AccessToken != "synthetic-next-key" {
 		t.Fatal("key was not replaced", err)

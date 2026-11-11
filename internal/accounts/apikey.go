@@ -172,6 +172,10 @@ func (s *Service) UpdateAPIChannel(ctx context.Context, id string, input APIChan
 		if err := s.persist(ctx, q, id, credential, status); err != nil {
 			return Account{}, err
 		}
+		// A new key may grant a different model set; discovery must not reuse the old snapshot.
+		if err := q.InvalidateAccountCatalog(ctx, id); err != nil {
+			return Account{}, err
+		}
 	}
 	now := s.now().Unix()
 	if name != row.Name {

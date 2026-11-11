@@ -1822,4 +1822,7 @@ export const zh: Record<keyof typeof en, string> = {
   ipReportLookupHint: '查询时会把该出口 IP 发送给 ip.net.coffee。',
   ipReportPageHint:
     'IP 纯净度只在你手动查询时获取，届时会把该出口 IP 发送给 ip.net.coffee，结果缓存 6 小时。',
+  allocationImageInputM: '其中图片输入 · M',
+  allocationImageInputHint:
+    '仅用于生图模型请求：输入 Token 中属于图片的部分，按图片输入价计费。其他请求留空即可。',
 }

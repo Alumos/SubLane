@@ -162,6 +162,8 @@ export function settleAllocation(
     input: number
     output: number
     cached: number
+    // Image share of input for image model requests; settled at the image input rate.
+    image_input?: number
   },
 ) {
   return request(`/api/allocations/${id}/settle`, z.undefined(), {

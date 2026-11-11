@@ -1595,5 +1595,7 @@
   "ipReportPageHint": "IP 純淨度只在你手動查詢時取得，屆時會把該出口 IP 傳送給 ip.net.coffee，結果快取 6 小時。",
   "ipReportLookup": "查詢 IP 純淨度",
   "ipReportLookupNamed": "查詢 {{name}} 的 IP 純淨度",
-  "ipReportLookupHint": "查詢時會把該出口 IP 傳送給 ip.net.coffee。"
+  "ipReportLookupHint": "查詢時會把該出口 IP 傳送給 ip.net.coffee。",
+  "allocationImageInputM": "其中圖片輸入 · M",
+  "allocationImageInputHint": "僅用於生圖模型請求：輸入 Token 中屬於圖片的部分，按圖片輸入價計費。其他請求留空即可。"
 }

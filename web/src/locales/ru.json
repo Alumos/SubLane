@@ -1605,5 +1605,7 @@
   "ipReportPageHint": "Чистота IP запрашивается только по вашему запросу; тогда ip.net.coffee получает этот выходной IP, а результат кэшируется на шесть часов.",
   "ipReportLookup": "Проверить чистоту IP",
   "ipReportLookupNamed": "Проверить чистоту IP для {{name}}",
-  "ipReportLookupHint": "При проверке этот выходной IP отправляется на ip.net.coffee."
+  "ipReportLookupHint": "При проверке этот выходной IP отправляется на ip.net.coffee.",
+  "allocationImageInputM": "Ввод изображений · M",
+  "allocationImageInputHint": "Для запросов к моделям изображений: доля изображений во входных токенах по тарифу ввода изображений. Иначе оставьте пустым."
 }

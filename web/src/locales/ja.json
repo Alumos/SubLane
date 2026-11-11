@@ -1595,5 +1595,7 @@
   "ipReportPageHint": "IP 純度は手動で確認したときだけ取得し、その出口 IP を ip.net.coffee に送信します。結果は 6 時間キャッシュされます。",
   "ipReportLookup": "IP 純度を確認",
   "ipReportLookupNamed": "{{name}} の IP 純度を確認",
-  "ipReportLookupHint": "確認すると、この出口 IP が ip.net.coffee に送信されます。"
+  "ipReportLookupHint": "確認すると、この出口 IP が ip.net.coffee に送信されます。",
+  "allocationImageInputM": "うち画像入力 · M",
+  "allocationImageInputHint": "画像モデルのリクエスト用：入力トークンのうち画像の分で、画像入力料金で課金されます。それ以外は空欄のままにしてください。"
 }
