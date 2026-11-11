@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/murongg/SubLane/internal/accounts"
@@ -12,6 +14,16 @@ import (
 
 // OpenCodeGoUsageURL is the official JSON usage endpoint; it accepts the channel's API key.
 var OpenCodeGoUsageURL = "https://opencode.ai/zen/go/v1/usage"
+
+// OfficialOpenCodeGo reports whether a channel's key belongs to the official OpenCode origin.
+// The preset label alone is not enough: a custom relay key must never be sent to opencode.ai.
+func OfficialOpenCodeGo(baseURL, platform string) bool {
+	if platform != "opencode-go" {
+		return false
+	}
+	u, err := url.Parse(baseURL)
+	return err == nil && u.Scheme == "https" && u.User == nil && strings.EqualFold(u.Host, "opencode.ai")
+}
 
 const (
 	openCodeGoRollingSeconds int64 = 5 * 3600

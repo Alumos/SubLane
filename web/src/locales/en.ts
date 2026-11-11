@@ -1936,10 +1936,6 @@ export const en = {
     'Keeps conversations without a session ID on one resource, using a hash of the opening prompt, and lets subagents prefer their parent’s resource. Unavailable resources still fail over. Improves upstream prompt cache hits.',
   sessionStickyEnabled: 'Session stickiness on',
   editChannel: 'Edit channel',
-  channelEditDescription:
-    'Change the name, platform, protocol, endpoint or key. The channel keeps its group assignments, limits and request history.',
-  channelEditPlatformHint:
-    'Changing the endpoint or protocol refreshes the model catalog and requires verifying the connection again.',
   channelKeyKeepHint:
     'Leave blank to keep the stored key. The stored key is never shown.',
   saveChannel: 'Save channel',
@@ -1989,6 +1985,11 @@ export const en = {
   proxyNetworkLabel: 'Network',
   proxyBoundAccounts: 'Bound accounts',
   proxyCheckedAt: 'Checked {{time}}',
+  channelEditDescription:
+    'Rename the channel or replace its key. To use another endpoint or protocol, add a new channel so the stored key never reaches a different upstream.',
+  ipReportLookup: 'Check IP purity',
+  ipReportLookupNamed: 'Check IP purity for {{name}}',
+  ipReportLookupHint: 'Checking sends this exit IP to ip.net.coffee.',
   ipReportPageHint:
-    'IP purity scores come from ip.net.coffee, which receives each checked exit IP; results are cached for six hours.',
+    'IP purity is looked up only when you request it; ip.net.coffee then receives that exit IP, and results are cached for six hours.',
 } satisfies Record<string, string>

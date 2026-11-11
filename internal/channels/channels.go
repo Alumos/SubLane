@@ -106,7 +106,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.resources.Delete(ctx, id)
 }
 
-// Update edits name, endpoint, platform, protocol and optionally the key while keeping the channel ID.
+// Update renames a channel and optionally replaces its key while keeping the channel ID.
 func (s *Service) Update(ctx context.Context, id string, input Input) (Channel, error) {
 	if _, err := s.Get(ctx, id); err != nil {
 		return Channel{}, err

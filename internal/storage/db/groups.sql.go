@@ -155,7 +155,7 @@ func (q *Queries) CreateGroup(ctx context.Context, arg CreateGroupParams) (int64
 }
 
 const findGroupName = `-- name: FindGroupName :one
-SELECT id FROM account_groups WHERE tenant_id=?1 AND name=?2 COLLATE NOCASE
+SELECT id FROM account_groups WHERE tenant_id=?1 AND name=?2 COLLATE NOCASE AND deleted_at IS NULL
 `
 
 type FindGroupNameParams struct {
@@ -556,25 +556,19 @@ func (q *Queries) MemberExistsInTenant(ctx context.Context, arg MemberExistsInTe
 }
 
 const retireGroup = `-- name: RetireGroup :execrows
-UPDATE account_groups SET enabled=0,deleted_at=?1,updated_at=?1,name=?2
-WHERE id=?3 AND tenant_id=?4 AND deleted_at IS NULL
+UPDATE account_groups SET enabled=0,deleted_at=?1,updated_at=?1
+WHERE id=?2 AND tenant_id=?3 AND deleted_at IS NULL
 `
 
 type RetireGroupParams struct {
 	Now      *int64
-	Name     string
 	ID       int64
 	TenantID int64
 }
 
-// Retired names free the unique workspace name while history keeps a recognizable label.
+// Retired groups keep their names; uniqueness only applies to active groups.
 func (q *Queries) RetireGroup(ctx context.Context, arg RetireGroupParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, retireGroup,
-		arg.Now,
-		arg.Name,
-		arg.ID,
-		arg.TenantID,
-	)
+	result, err := q.db.ExecContext(ctx, retireGroup, arg.Now, arg.ID, arg.TenantID)
 	if err != nil {
 		return 0, err
 	}

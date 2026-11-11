@@ -1769,9 +1769,6 @@ export const zh: Record<keyof typeof en, string> = {
     '对未携带会话 ID 的对话，按开头提示词的哈希固定到同一资源，并让子代理优先使用父会话的资源。资源不可用时仍会自动切换。可提高上游提示词缓存命中率。',
   sessionStickyEnabled: '已开启会话粘性',
   editChannel: '编辑渠道',
-  channelEditDescription:
-    '修改名称、平台、协议、端点或密钥。渠道会保留其资源组分配、限制和请求记录。',
-  channelEditPlatformHint: '修改端点或协议会刷新模型目录，并需要重新验证连接。',
   channelKeyKeepHint: '留空则保留已保存的密钥。已保存的密钥不会显示。',
   saveChannel: '保存渠道',
   usageMonthly: '月度额度',
@@ -1818,6 +1815,11 @@ export const zh: Record<keyof typeof en, string> = {
   proxyNetworkLabel: '网络',
   proxyBoundAccounts: '绑定账号',
   proxyCheckedAt: '检测于 {{time}}',
+  channelEditDescription:
+    '修改渠道名称或更换密钥。如需使用其他端点或协议，请新建渠道，避免已保存的密钥被发送到其他上游。',
+  ipReportLookup: '查询 IP 纯净度',
+  ipReportLookupNamed: '查询 {{name}} 的 IP 纯净度',
+  ipReportLookupHint: '查询时会把该出口 IP 发送给 ip.net.coffee。',
   ipReportPageHint:
-    'IP 纯净度评分来自 ip.net.coffee（会发送已检测的出口 IP），结果缓存 6 小时。',
+    'IP 纯净度只在你手动查询时获取，届时会把该出口 IP 发送给 ip.net.coffee，结果缓存 6 小时。',
 }

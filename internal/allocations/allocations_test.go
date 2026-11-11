@@ -1772,3 +1772,24 @@ func TestManagedAccountDeletionExplainsPoolLock(t *testing.T) {
 		t.Fatal("missing actionable lock error", err)
 	}
 }
+
+func TestCostSettlesImageInputByModality(t *testing.T) {
+	// Rates are micro-USD per million tokens: text input $5/M, image input $8/M, image output $30/M.
+	rate := Rate{Input: 5_000_000, Cached: 1_250_000, Output: 30_000_000, ImageInput: 8_000_000}
+	cost, err := CostWithImages(rate, 1_000_000, 400_000, 1_000_000, 100_000)
+	// 500k text * 5 + 400k image * 8 + 100k cached * 1.25 + 1M output * 30 = 2.5 + 3.2 + 0.125 + 30 USD.
+	if err != nil || cost != 35_825_000 {
+		t.Fatal(cost, err)
+	}
+	if plain, err := Cost(rate, 1_000_000, 1_000_000, 100_000); err != nil || plain != 34_625_000 {
+		t.Fatal("text-only cost changed", plain, err)
+	}
+	fallback := rate
+	fallback.ImageInput = 0
+	if cost, err := CostWithImages(fallback, 1_000_000, 400_000, 0, 0); err != nil || cost != 5_000_000 {
+		t.Fatal("missing image rate must use the input rate", cost, err)
+	}
+	if _, err := CostWithImages(rate, 100, 60, 0, 50); !errors.Is(err, ErrInput) {
+		t.Fatal("overlapping categories accepted", err)
+	}
+}

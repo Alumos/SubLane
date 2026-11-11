@@ -5,6 +5,7 @@ import {
   Pencil,
   RefreshCw,
   ScanSearch,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -222,14 +223,31 @@ export function ProxyCard({
           <p className="text-xs leading-5 text-muted-foreground">
             {t('ipReportNeedsCheck')}
           </p>
-        ) : query.isPending ? (
+        ) : query.isPending || (refresh.isPending && !report) ? (
           <p role="status" className="text-xs text-muted-foreground">
             {t('ipReportLoading')}
           </p>
         ) : !report ? (
-          <p role="alert" className="text-xs text-warning">
-            {t(ipReportErrorKey(error))}
-          </p>
+          <div className="space-y-2">
+            {error && (
+              <p role="alert" className="text-xs text-warning">
+                {t(ipReportErrorKey(error))}
+              </p>
+            )}
+            <p className="text-xs leading-5 text-muted-foreground">
+              {t('ipReportLookupHint')}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={refresh.isPending}
+              aria-label={t('ipReportLookupNamed', { name: proxy.name })}
+              onClick={() => refresh.mutate()}
+            >
+              <ShieldCheck aria-hidden="true" />
+              {t('ipReportLookup')}
+            </Button>
+          </div>
         ) : (
           <>
             <div className="flex items-center justify-between gap-2">
@@ -325,7 +343,7 @@ export function ProxyCard({
             </time>
           )}
         </span>
-        {ready && (
+        {ready && report && (
           <div className="-mr-1.5 flex shrink-0 items-center">
             <Button
               asChild
