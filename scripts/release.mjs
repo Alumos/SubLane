@@ -24,18 +24,26 @@ export function releaseMetadata(tag, repository) {
   ) {
     throw new Error("Expected a GitHub owner/repository name.");
   }
+  // Fork revisions (X.Y.Z-revised.N) are stable releases of this fork, not prereleases.
+  const revision = /^revised\.([1-9]\d*)$/.exec(match[4] ?? "");
   return {
     tag,
     version: tag.slice(1),
-    prerelease: Boolean(match[4]),
+    prerelease: Boolean(match[4]) && !revision,
     image: `ghcr.io/${repository.toLowerCase()}`,
   };
+}
+
+// Stable versions order by (major, minor, patch, revision); a base release has revision 0.
+function stableKey(version) {
+  const [base, revision = "0"] = version.split("-revised.");
+  return [...base.split(".").map(BigInt), BigInt(revision)];
 }
 
 export function isLatestStable(tag, tags) {
   const current = releaseMetadata(tag, "owner/repo");
   if (current.prerelease) return false;
-  const version = current.version.split(".").map(BigInt);
+  const version = stableKey(current.version);
   for (const candidate of tags) {
     let other;
     try {
@@ -44,8 +52,8 @@ export function isLatestStable(tag, tags) {
       continue;
     }
     if (other.prerelease) continue;
-    const parts = other.version.split(".").map(BigInt);
-    for (let i = 0; i < 3; i++) {
+    const parts = stableKey(other.version);
+    for (let i = 0; i < version.length; i++) {
       if (parts[i] > version[i]) return false;
       if (parts[i] < version[i]) break;
     }

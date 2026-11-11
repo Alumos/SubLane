@@ -1508,7 +1508,7 @@
   "keyGroupUnavailableHint": "所選資源群組或用量分配已無法使用，請重新整理選項或聯絡管理員。",
   "allocationExistingKeysHint": "儲存時，會將所選成員在此資源群組中現有且未撤銷的金鑰關聯至本方案，金鑰值和用戶端設定保持不變。未加入方案的成員，其現有金鑰將無法繼續使用此資源群組。",
   "updatesTitle": "軟體更新",
-  "updatesDescription": "檢查 SubLane 官方版本並更新目前執行個體。僅平台擁有者可安裝更新。",
+  "updatesDescription": "檢查本 SubLane 修改版（Alumos/SubLane）的發佈版本並更新目前實例。僅平台擁有者可以安裝更新。",
   "updateCurrent": "目前版本",
   "updateLatest": "最新正式版",
   "updateCheck": "檢查更新",

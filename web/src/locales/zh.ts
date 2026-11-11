@@ -3,7 +3,7 @@ import type { en } from './en'
 export const zh: Record<keyof typeof en, string> = {
   updatesTitle: '软件更新',
   updatesDescription:
-    '检查 SubLane 官方版本并更新当前实例。仅平台所有者可以安装更新。',
+    '检查本 SubLane 修改版（Alumos/SubLane）的发布版本并更新当前实例。仅平台所有者可以安装更新。',
   updateCurrent: '当前版本',
   updateLatest: '最新正式版',
   updateCheck: '检查更新',

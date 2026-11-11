@@ -1508,7 +1508,7 @@
   "keyGroupUnavailableHint": "選択したグループまたは利用枠は利用できなくなりました。選択肢を更新するか、管理者に連絡してください。",
   "allocationExistingKeysHint": "保存すると、選択したメンバーがこのグループで持つ未失効の既存キーを利用枠に関連付けます。キーとクライアント設定は変わりません。利用枠に含まれないメンバーの既存キーは、このグループを利用できなくなります。",
   "updatesTitle": "ソフトウェア更新",
-  "updatesDescription": "SubLane の公式リリースを確認し、このインスタンスを更新します。インストールはプラットフォーム所有者のみ行えます。",
+  "updatesDescription": "この SubLane フォーク（Alumos/SubLane）のリリースを確認し、このインスタンスを更新します。更新をインストールできるのはプラットフォーム所有者のみです。",
   "updateCurrent": "現在のバージョン",
   "updateLatest": "最新の安定版",
   "updateCheck": "更新を確認",

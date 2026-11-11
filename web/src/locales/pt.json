@@ -1513,7 +1513,7 @@
   "keyGroupUnavailableHint": "O grupo ou a alocação selecionados não estão mais disponíveis. Atualize as opções ou contate um administrador.",
   "allocationExistingKeysHint": "Ao salvar, as chaves existentes não revogadas dos membros selecionados neste grupo são vinculadas à alocação. As chaves e as configurações do cliente permanecem iguais. As chaves existentes dos membros não incluídos perderão o acesso a este grupo.",
   "updatesTitle": "Atualizações de software",
-  "updatesDescription": "Verifique as versões oficiais do SubLane e atualize esta instância. Apenas o proprietário da plataforma pode instalar atualizações.",
+  "updatesDescription": "Verifique as versões deste fork do SubLane (Alumos/SubLane) e atualize esta instância. Somente o proprietário da plataforma pode instalar atualizações.",
   "updateCurrent": "Versão atual",
   "updateLatest": "Última versão estável",
   "updateCheck": "Verificar atualizações",

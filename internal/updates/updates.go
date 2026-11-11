@@ -18,10 +18,13 @@ import (
 	"time"
 )
 
-const releasesURL = "https://api.github.com/repos/murongg/SubLane/releases/latest"
-const releaseBase = "https://github.com/murongg/SubLane/releases/tag/v"
+// This fork publishes its own releases; updates never switch an installation to another repository.
+const repository = "Alumos/SubLane"
+const releasesURL = "https://api.github.com/repos/" + repository + "/releases/latest"
+const releaseBase = "https://github.com/" + repository + "/releases/tag/v"
 
-var stable = regexp.MustCompile(`^(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})$`)
+// Stable fork releases are X.Y.Z or X.Y.Z-revised.N, ordered by (X, Y, Z, N) with N=0 for X.Y.Z.
+var stable = regexp.MustCompile(`^(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})\.(0|[1-9][0-9]{0,5})(?:-revised\.([1-9][0-9]{0,5}))?$`)
 var jobID = regexp.MustCompile(`^[a-f0-9]{32}$`)
 var (
 	ErrCheck    = errors.New("release check failed")
@@ -186,11 +189,12 @@ func (s *Service) fetch(ctx context.Context) (string, error) {
 	return version, nil
 }
 func newer(next, current string) bool {
-	if !stable.MatchString(next) || !stable.MatchString(current) {
+	a, b := stable.FindStringSubmatch(next), stable.FindStringSubmatch(current)
+	if a == nil || b == nil {
 		return false
 	}
-	a, b := strings.Split(next, "."), strings.Split(current, ".")
-	for i := range a {
+	for i := 1; i <= 4; i++ {
+		// An absent revision sorts before every revision of the same base release.
 		x, _ := strconv.Atoi(a[i])
 		y, _ := strconv.Atoi(b[i])
 		if x != y {

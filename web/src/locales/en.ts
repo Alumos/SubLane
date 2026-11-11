@@ -1,7 +1,7 @@
 export const en = {
   updatesTitle: 'Software updates',
   updatesDescription:
-    'Check official SubLane releases and update this instance. Only the platform owner can install updates.',
+    'Check releases of this SubLane fork (Alumos/SubLane) and update this instance. Only the platform owner can install updates.',
   updateCurrent: 'Current version',
   updateLatest: 'Latest stable release',
   updateCheck: 'Check for updates',

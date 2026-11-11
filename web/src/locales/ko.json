@@ -1508,7 +1508,7 @@
   "keyGroupUnavailableHint": "선택한 그룹 또는 사용 한도를 더 이상 사용할 수 없습니다. 선택 목록을 새로 고치거나 관리자에게 문의하세요.",
   "allocationExistingKeysHint": "저장하면 선택한 구성원이 이 그룹에 보유한 기존의 취소되지 않은 키를 사용 한도에 연결합니다. 키와 클라이언트 설정은 유지됩니다. 사용 한도에 포함되지 않은 구성원의 기존 키는 이 그룹에 접근할 수 없게 됩니다.",
   "updatesTitle": "소프트웨어 업데이트",
-  "updatesDescription": "SubLane 공식 릴리스를 확인하고 이 인스턴스를 업데이트합니다. 플랫폼 소유자만 설치할 수 있습니다.",
+  "updatesDescription": "이 SubLane 포크(Alumos/SubLane)의 릴리스를 확인하고 이 인스턴스를 업데이트합니다. 플랫폼 소유자만 업데이트를 설치할 수 있습니다.",
   "updateCurrent": "현재 버전",
   "updateLatest": "최신 안정 버전",
   "updateCheck": "업데이트 확인",

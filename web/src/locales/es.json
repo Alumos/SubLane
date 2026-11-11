@@ -1513,7 +1513,7 @@
   "keyGroupUnavailableHint": "El grupo o la asignación seleccionados ya no están disponibles. Actualice las opciones o contacte con un administrador.",
   "allocationExistingKeysHint": "Al guardar, las claves existentes no revocadas de los miembros seleccionados en este grupo se vinculan a la asignación. Las claves y la configuración del cliente no cambian. Las claves existentes de los miembros excluidos perderán el acceso a este grupo.",
   "updatesTitle": "Actualizaciones de software",
-  "updatesDescription": "Consulta las versiones oficiales de SubLane y actualiza esta instancia. Solo el propietario de la plataforma puede instalar actualizaciones.",
+  "updatesDescription": "Comprueba las versiones de esta bifurcación de SubLane (Alumos/SubLane) y actualiza esta instancia. Solo el propietario de la plataforma puede instalar actualizaciones.",
   "updateCurrent": "Versión actual",
   "updateLatest": "Última versión estable",
   "updateCheck": "Buscar actualizaciones",

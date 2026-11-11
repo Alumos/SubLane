@@ -1508,7 +1508,7 @@
   "keyGroupUnavailableHint": "Die gewählte Gruppe oder das Kontingent ist nicht mehr verfügbar. Aktualisieren Sie die Auswahl oder kontaktieren Sie einen Administrator.",
   "allocationExistingKeysHint": "Beim Speichern werden die vorhandenen, nicht widerrufenen Schlüssel der ausgewählten Mitglieder in dieser Gruppe mit dem Kontingent verknüpft. Schlüssel und Client-Einstellungen bleiben gleich. Vorhandene Schlüssel nicht eingeschlossener Mitglieder verlieren den Zugriff auf diese Gruppe.",
   "updatesTitle": "Softwareupdates",
-  "updatesDescription": "Prüfen Sie offizielle SubLane-Versionen und aktualisieren Sie diese Instanz. Nur der Plattforminhaber darf Updates installieren.",
+  "updatesDescription": "Prüfen Sie Releases dieses SubLane-Forks (Alumos/SubLane) und aktualisieren Sie diese Instanz. Nur der Plattformbesitzer kann Updates installieren.",
   "updateCurrent": "Aktuelle Version",
   "updateLatest": "Neueste stabile Version",
   "updateCheck": "Nach Updates suchen",

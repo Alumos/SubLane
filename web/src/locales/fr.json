@@ -1513,7 +1513,7 @@
   "keyGroupUnavailableHint": "Le groupe ou l’allocation sélectionné n’est plus disponible. Actualisez les choix ou contactez un administrateur.",
   "allocationExistingKeysHint": "L’enregistrement associe à cette allocation les clés existantes non révoquées des membres sélectionnés dans ce groupe. Les clés et les paramètres du client restent inchangés. Les clés existantes des membres exclus de l’allocation perdront l’accès à ce groupe.",
   "updatesTitle": "Mises à jour logicielles",
-  "updatesDescription": "Vérifiez les versions officielles de SubLane et mettez à jour cette instance. Seul le propriétaire de la plateforme peut installer des mises à jour.",
+  "updatesDescription": "Vérifiez les versions de ce fork de SubLane (Alumos/SubLane) et mettez à jour cette instance. Seul le propriétaire de la plateforme peut installer les mises à jour.",
   "updateCurrent": "Version actuelle",
   "updateLatest": "Dernière version stable",
   "updateCheck": "Rechercher des mises à jour",

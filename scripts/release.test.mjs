@@ -47,3 +47,17 @@ test("keeps prereleases and older maintenance versions off the stable channel", 
   assert.equal(isLatestStable("v2.0.0-rc.1", ["v1.10.0"]), false);
   assert.equal(isLatestStable("v0.1.0", ["not-a-version", "v0.1.0"]), true);
 });
+
+test("treats fork revisions as stable and orders them after their base release", () => {
+  assert.equal(releaseMetadata("v0.19.2-revised.8", "Alumos/SubLane").prerelease, false);
+  assert.equal(releaseMetadata("v0.19.2-revised.8", "Alumos/SubLane").image, "ghcr.io/alumos/sublane");
+  assert.equal(releaseMetadata("v0.19.2-rc.1", "Alumos/SubLane").prerelease, true);
+  assert.equal(releaseMetadata("v0.19.2-revised.0", "Alumos/SubLane").prerelease, true);
+  assert.equal(
+    isLatestStable("v0.19.2-revised.10", ["v0.19.2", "v0.19.2-revised.9", "v0.19.2-revised.10"]),
+    true,
+  );
+  assert.equal(isLatestStable("v0.19.2-revised.9", ["v0.19.2-revised.10"]), false);
+  assert.equal(isLatestStable("v0.19.2", ["v0.19.2-revised.1"]), false);
+  assert.equal(isLatestStable("v0.19.3", ["v0.19.2-revised.99"]), true);
+});
