@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { LoaderCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -55,19 +55,18 @@ export function AccountFingerprint({
     queryKey: ['account-fingerprint', account.id],
     queryFn: () => fetchAccountFingerprint(account.id),
   })
-  const [values, setValues] = useState<FingerprintInput>(empty)
+  // Edits start from the stored fingerprint; null means the form shows the stored values.
+  const [edited, setValues] = useState<FingerprintInput | null>(null)
+  const values = edited ?? (query.data ? profileInput(query.data) : empty)
   const [device, setDevice] = useState(false)
-  useEffect(() => {
-    if (query.data) setValues(profileInput(query.data))
-  }, [query.data])
   const save = useMutation({
     mutationFn: saveAccountFingerprint,
     onSuccess: onClose,
   })
   const reset = useMutation({
     mutationFn: resetAccountFingerprint,
-    onSuccess: (fingerprint) => {
-      setValues(profileInput(fingerprint))
+    onSuccess: () => {
+      setValues(null)
       setDevice(false)
       return query.refetch()
     },
@@ -75,7 +74,7 @@ export function AccountFingerprint({
   const busy = save.isPending || reset.isPending
   const failure = save.error ?? reset.error
   const set = (key: keyof FingerprintInput) => (value: string) =>
-    setValues((current) => ({ ...current, [key]: value }))
+    setValues({ ...values, [key]: value })
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!query.data || busy) return
