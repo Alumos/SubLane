@@ -937,7 +937,7 @@ export const en = {
   fingerprintSourceNone: 'Not learned yet. The next native client sets it.',
   fingerprintCodexPlatform: 'Platform and terminal',
   fingerprintCodexPlatformHint:
-    'The platform part of the Codex User-Agent, for example (Mac OS 15.5.0; arm64) iTerm.app/3.6.1. SubLane manages the Codex version.',
+    'The platform part of the Codex User-Agent, for example (Mac OS 15.5.0; arm64) iTerm.app/3.6.1. SubLane manages the Codex version. Accounts no native client has used yet present (Ubuntu 22.4.0; x86_64) xterm-256color.',
   fingerprintClaudeOS: 'Operating system',
   fingerprintClaudeArch: 'Architecture',
   fingerprintRuntimeVersion: 'Runtime version',
@@ -945,6 +945,26 @@ export const en = {
   fingerprintClaudeHint:
     'Sent as X-Stainless headers. Operating system and architecture are learned from the first Claude Code client; runtime and SDK versions follow the managed Claude Code release unless set here.',
   fingerprintAutomatic: 'Automatic',
+  fingerprintConvergence: 'Identifier convergence',
+  fingerprintModeOff: 'Off',
+  fingerprintModeDevice: 'Device',
+  fingerprintModeSession: 'Session',
+  fingerprintModeFull: 'Full',
+  fingerprintModeOffHint:
+    'Each client keeps its own installation, session and thread identifiers (SubLane still isolates sessions per member).',
+  fingerprintModeDeviceHint:
+    'All clients share one installation ID, so the provider sees one device with several sessions.',
+  fingerprintModeSessionHint:
+    'One device and one session; each real conversation keeps its own thread, like one user running several windows or subagents.',
+  fingerprintModeFullHint:
+    'One device, one session and one thread for every client. The most aggressive mode.',
+  fingerprintConvergenceWarning:
+    'Off by default for a reason: when sub2api enabled convergence by default, users reported shrinking quotas. Turn it on for one account first and watch its quota.',
+  fingerprintTLS: 'Claude Code TLS fingerprint',
+  fingerprintTLSHint:
+    'Connections present the TLS handshake of Claude Code on Node.js 24 (JA3 44f88fca…) instead of Go’s, over HTTP/1.1 like the real client.',
+  fingerprintInstallation: 'Installation ID',
+  fingerprintResetInstallation: 'Also generate a new installation ID',
   fingerprintDevice: 'Device ID',
   fingerprintResetDevice: 'Also generate a new device ID',
   fingerprintResetDeviceHint:

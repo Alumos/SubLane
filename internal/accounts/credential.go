@@ -15,7 +15,9 @@ type Credential struct {
 	APIProtocol string `json:"api_protocol,omitempty"`
 	ProxyURL    string `json:"-"`
 	// Profile is the account's pinned client fingerprint; it is stored on the account, not the credential.
-	Profile      ClientProfile              `json:"-"`
+	Profile ClientProfile `json:"-"`
+	// Identity is the account\'s opt-in identity hardening; it is stored on the account.
+	Identity     ClientIdentity             `json:"-"`
 	Provider     string                     `json:"provider,omitempty"`
 	Metadata     map[string]json.RawMessage `json:"metadata,omitempty"`
 	AccessToken  string                     `json:"access_token"`

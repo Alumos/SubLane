@@ -9,6 +9,7 @@ import {
   saveAccountFingerprint,
   type Account,
   type AccountFingerprint as Fingerprint,
+  type FingerprintIdentity,
   type FingerprintInput,
 } from '@/lib/accounts'
 import { Button } from './ui/Button'
@@ -32,6 +33,20 @@ const empty: FingerprintInput = {
 // The Stainless values the Anthropic SDK reports on the platforms Claude Code runs on.
 const claudeOS = ['MacOS', 'Windows', 'Linux', 'FreeBSD']
 const claudeArch = ['arm64', 'x64', 'x86', 'arm']
+const modes = ['off', 'device', 'session', 'full'] as const
+const modeHints = {
+  off: 'fingerprintModeOffHint',
+  device: 'fingerprintModeDeviceHint',
+  session: 'fingerprintModeSessionHint',
+  full: 'fingerprintModeFullHint',
+} as const
+const modeLabels = {
+  off: 'fingerprintModeOff',
+  device: 'fingerprintModeDevice',
+  session: 'fingerprintModeSession',
+  full: 'fingerprintModeFull',
+} as const
+const noIdentity: FingerprintIdentity = { mode: 'off', tls: false }
 const selectClass =
   'h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50'
 
@@ -58,6 +73,10 @@ export function AccountFingerprint({
   // Edits start from the stored fingerprint; null means the form shows the stored values.
   const [edited, setValues] = useState<FingerprintInput | null>(null)
   const values = edited ?? (query.data ? profileInput(query.data) : empty)
+  const [editedIdentity, setIdentity] = useState<FingerprintIdentity | null>(
+    null,
+  )
+  const identity = editedIdentity ?? query.data?.identity ?? noIdentity
   const [device, setDevice] = useState(false)
   const save = useMutation({
     mutationFn: saveAccountFingerprint,
@@ -67,6 +86,7 @@ export function AccountFingerprint({
     mutationFn: resetAccountFingerprint,
     onSuccess: () => {
       setValues(null)
+      setIdentity(null)
       setDevice(false)
       return query.refetch()
     },
@@ -82,7 +102,7 @@ export function AccountFingerprint({
     const profile = Object.fromEntries(
       Object.entries(values).map(([key, value]) => [key, value.trim()]),
     ) as FingerprintInput
-    save.mutate({ id: account.id, profile })
+    save.mutate({ id: account.id, profile, identity })
   }
   const source = query.data?.profile.source ?? ''
   return (
@@ -160,6 +180,42 @@ export function AccountFingerprint({
                 >
                   {t('fingerprintCodexPlatformHint')}
                 </p>
+                <label
+                  htmlFor="fingerprint-mode"
+                  className="block pt-2 text-sm font-medium"
+                >
+                  {t('fingerprintConvergence')}
+                </label>
+                <select
+                  id="fingerprint-mode"
+                  value={identity.mode}
+                  onChange={(event) =>
+                    setIdentity({
+                      ...identity,
+                      mode: event.target.value as FingerprintIdentity['mode'],
+                    })
+                  }
+                  aria-describedby="fingerprint-mode-hint"
+                  disabled={busy}
+                  className={selectClass}
+                >
+                  {modes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {t(modeLabels[mode])}
+                    </option>
+                  ))}
+                </select>
+                <div
+                  id="fingerprint-mode-hint"
+                  className="space-y-1 text-xs leading-5 text-muted-foreground"
+                >
+                  <p>{t(modeHints[identity.mode])}</p>
+                  {identity.mode !== 'off' && (
+                    <p className="text-warning">
+                      {t('fingerprintConvergenceWarning')}
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -228,10 +284,38 @@ export function AccountFingerprint({
                 <p className="text-xs leading-5 text-muted-foreground">
                   {t('fingerprintClaudeHint')}
                 </p>
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={identity.tls}
+                    onChange={(event) =>
+                      setIdentity({ ...identity, tls: event.target.checked })
+                    }
+                    aria-describedby="fingerprint-tls-hint"
+                    disabled={busy}
+                    className="mt-0.5 size-4 shrink-0 accent-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <span>{t('fingerprintTLS')}</span>
+                </label>
+                <p
+                  id="fingerprint-tls-hint"
+                  className="text-xs leading-5 text-muted-foreground"
+                >
+                  {t('fingerprintTLSHint')}
+                </p>
+              </div>
+            )}
+            {(query.data.provider === 'claude' ||
+              query.data.identity.mode !== 'off') && (
+              <div className="space-y-2">
                 {query.data.device_id && (
                   <p className="text-sm">
-                    {t('fingerprintDevice')}:{' '}
-                    <code className="font-mono">{query.data.device_id}…</code>
+                    {t(
+                      query.data.provider === 'codex'
+                        ? 'fingerprintInstallation'
+                        : 'fingerprintDevice',
+                    )}
+                    : <code className="font-mono">{query.data.device_id}…</code>
                   </p>
                 )}
                 <label className="flex items-start gap-3 text-sm">
@@ -243,7 +327,13 @@ export function AccountFingerprint({
                     disabled={busy}
                     className="mt-0.5 size-4 shrink-0 accent-primary focus-visible:ring-2 focus-visible:ring-ring"
                   />
-                  <span>{t('fingerprintResetDevice')}</span>
+                  <span>
+                    {t(
+                      query.data.provider === 'codex'
+                        ? 'fingerprintResetInstallation'
+                        : 'fingerprintResetDevice',
+                    )}
+                  </span>
                 </label>
                 <p
                   id="fingerprint-device-hint"

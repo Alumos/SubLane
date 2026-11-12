@@ -19,9 +19,10 @@ func TestCodexAgentPresentsAccountPlatform(t *testing.T) {
 	if headers.Get("User-Agent") != "codex_cli_rs/0.155.1 (Mac OS 15.5.0; arm64) iTerm.app/3.6.1" || headers.Get("Version") != "0.155.1" {
 		t.Fatal("account platform missing", headers)
 	}
+	// An account no native client has used yet still presents a complete agent, never a bare one.
 	applyCodexVersion(headers, "0.155.1", "")
-	if headers.Get("User-Agent") != "codex_cli_rs/0.155.1" {
-		t.Fatal("unlearned account changed agent", headers.Get("User-Agent"))
+	if headers.Get("User-Agent") != "codex_cli_rs/0.155.1 "+accounts.CodexDefaultPlatform {
+		t.Fatal("unlearned account sent an incomplete agent", headers.Get("User-Agent"))
 	}
 }
 

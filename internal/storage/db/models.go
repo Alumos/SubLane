@@ -5,30 +5,33 @@
 package db
 
 type Account struct {
-	ID             string
-	Provider       string
-	Name           string
-	AccountID      string
-	Email          string
-	Plan           string
-	Enabled        bool
-	Status         string
-	Credential     []byte
-	ExpiresAt      int64
-	CreatedAt      int64
-	UpdatedAt      int64
-	MaxConcurrency int64
-	ModelsSnapshot []byte
-	ModelsRevision int64
-	TenantID       int64
-	ProxyID        *string
-	ResetConfig    string
-	ResetRevision  int64
-	ResetNextRunAt int64
-	ResetTimeZone  string
-	ResetCheckAt   int64
-	UsageRevision  int64
-	ClientProfile  *string
+	ID              string
+	Provider        string
+	Name            string
+	AccountID       string
+	Email           string
+	Plan            string
+	Enabled         bool
+	Status          string
+	Credential      []byte
+	ExpiresAt       int64
+	CreatedAt       int64
+	UpdatedAt       int64
+	MaxConcurrency  int64
+	ModelsSnapshot  []byte
+	ModelsRevision  int64
+	TenantID        int64
+	ProxyID         *string
+	ResetConfig     string
+	ResetRevision   int64
+	ResetNextRunAt  int64
+	ResetTimeZone   string
+	ResetCheckAt    int64
+	UsageRevision   int64
+	ClientProfile   *string
+	FingerprintMode string
+	FingerprintSeed *string
+	TlsFingerprint  bool
 }
 
 type AccountGroup struct {

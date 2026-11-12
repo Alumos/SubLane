@@ -244,11 +244,16 @@ func (h *accountHTTP) setFingerprint(w http.ResponseWriter, r *http.Request) {
 		Arch           string `json:"arch"`
 		RuntimeVersion string `json:"runtime_version"`
 		PackageVersion string `json:"package_version"`
+		Mode           string `json:"mode"`
+		TLS            bool   `json:"tls"`
 	}
 	if !decodeJSON(w, r, &input) {
 		return
 	}
-	fingerprint, err := h.service.SetFingerprint(r.Context(), chi.URLParam(r, "id"), accounts.ClientProfile{Platform: input.Platform, OS: input.OS, Arch: input.Arch, RuntimeVersion: input.RuntimeVersion, PackageVersion: input.PackageVersion})
+	if input.Mode == "" {
+		input.Mode = "off"
+	}
+	fingerprint, err := h.service.SetFingerprint(r.Context(), chi.URLParam(r, "id"), accounts.ClientProfile{Platform: input.Platform, OS: input.OS, Arch: input.Arch, RuntimeVersion: input.RuntimeVersion, PackageVersion: input.PackageVersion}, accounts.ClientIdentity{Mode: input.Mode, TLS: input.TLS})
 	if err != nil {
 		accountError(w, err)
 		return

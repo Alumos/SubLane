@@ -235,7 +235,7 @@ func TestModelsRequestsVersionGatedCatalog(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		// Model discovery can succeed with only hidden entries for an obsolete client.
-		if r.URL.Query().Get("client_version") != "0.155.1" || r.Header.Get("User-Agent") != "codex_cli_rs/0.155.1" {
+		if r.URL.Query().Get("client_version") != "0.155.1" || r.Header.Get("User-Agent") != "codex_cli_rs/0.155.1 "+accounts.CodexDefaultPlatform {
 			io.WriteString(w, `{"models":[{"slug":"synthetic-hidden","visibility":"hide"}]}`)
 			return
 		}
@@ -284,7 +284,7 @@ func TestDiscoveryCapturesOneConfiguredVersion(t *testing.T) {
 	var current atomic.Value
 	current.Store("0.200.0")
 	client := NewWithTransport(usageTransport(func(r *http.Request) (*http.Response, error) {
-		if r.URL.Query().Get("client_version") != "0.200.0" || r.Header.Get("User-Agent") != "codex_cli_rs/0.200.0" || r.Header.Get("Version") != "0.200.0" {
+		if r.URL.Query().Get("client_version") != "0.200.0" || r.Header.Get("User-Agent") != "codex_cli_rs/0.200.0 "+accounts.CodexDefaultPlatform || r.Header.Get("Version") != "0.200.0" {
 			t.Error("request version disagrees across headers/query")
 		}
 		current.Store("0.300.0")
@@ -299,7 +299,7 @@ func TestDiscoveryCapturesOneConfiguredVersion(t *testing.T) {
 
 func TestConfiguredCodexVersionReachesSDKForwarding(t *testing.T) {
 	client := NewWithTransport(usageTransport(func(r *http.Request) (*http.Response, error) {
-		if r.Header.Get("Version") != "0.200.0" || r.Header.Get("User-Agent") != "codex_cli_rs/0.200.0" || r.Header.Get("Originator") != "codex_cli_rs" {
+		if r.Header.Get("Version") != "0.200.0" || r.Header.Get("User-Agent") != "codex_cli_rs/0.200.0 "+accounts.CodexDefaultPlatform || r.Header.Get("Originator") != "codex_cli_rs" {
 			t.Error("SDK ignored configured version")
 		}
 		return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": {"text/event-stream"}}, Body: io.NopCloser(strings.NewReader("data: {\"type\":\"response.completed\",\"response\":{\"id\":\"synthetic\",\"output\":[]}}\n\n"))}, nil

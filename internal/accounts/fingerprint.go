@@ -3,12 +3,15 @@ package accounts
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/murongg/SubLane/internal/audit"
 	"github.com/murongg/SubLane/internal/storage/db"
@@ -33,19 +36,39 @@ type ClientProfile struct {
 	PackageVersion string `json:"package_version,omitempty"`
 }
 
-// Fingerprint is the administrator view of an account's client fingerprint. DeviceID is a short
-// prefix of the Claude device identifier, never the full value.
-type Fingerprint struct {
-	Provider string        `json:"provider"`
-	Profile  ClientProfile `json:"profile"`
-	DeviceID string        `json:"device_id,omitempty"`
+// ClientIdentity holds opt-in identity hardening for one account, modelled on sub2api.
+type ClientIdentity struct {
+	// Mode converges Codex identifiers: "off" (pass client IDs through), "device" (one installation
+	// ID), "session" (also one session ID, one thread per real conversation) or "full" (one thread).
+	Mode string `json:"mode"`
+	// Seed is the system-managed random value converged identifiers derive from; never exposed.
+	Seed string `json:"-"`
+	// TLS makes a Claude account's connections present Claude Code's (Node.js 24) TLS handshake.
+	TLS bool `json:"tls"`
 }
 
+// Fingerprint is the administrator view of an account's client fingerprint. DeviceID is a short
+// prefix of the Claude device or converged Codex installation identifier, never the full value.
+type Fingerprint struct {
+	Provider string         `json:"provider"`
+	Profile  ClientProfile  `json:"profile"`
+	Identity ClientIdentity `json:"identity"`
+	DeviceID string         `json:"device_id,omitempty"`
+}
+
+// CodexDefaultPlatform is presented by Codex accounts that have not learned a native client yet,
+// matching sub2api's canonical identity, so no request leaves with a platform-less agent.
+const CodexDefaultPlatform = "(Ubuntu 22.4.0; x86_64) xterm-256color"
+
+var convergenceModes = map[string]bool{"off": true, "device": true, "session": true, "full": true}
+
 var (
-	// codexClientAgent matches a native Codex User-Agent:
-	// "<originator>/<version> (<os> <os version>; <arch>) <terminal>[ (<suffix>)]".
-	codexClientAgent = regexp.MustCompile(`^(?:codex_cli_rs|codex-tui|codex_exec|codex_vscode)/[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]{0,24} (\([A-Za-z][A-Za-z0-9 ._-]{0,48} [0-9][0-9A-Za-z._-]{0,24}; [A-Za-z0-9_]{1,16}\)(?: [A-Za-z0-9][A-Za-z0-9._+-]{0,40}(?:/[A-Za-z0-9._+-]{1,40})?)?)`)
-	codexPlatform    = regexp.MustCompile(`^\([A-Za-z][A-Za-z0-9 ._-]{0,48} [0-9][0-9A-Za-z._-]{0,24}; [A-Za-z0-9_]{1,16}\)(?: [A-Za-z0-9][A-Za-z0-9._+-]{0,40}(?:/[A-Za-z0-9._+-]{1,40})?)?$`)
+	// codexClientAgent matches a native Codex User-Agent as codex-rs builds it
+	// ("<originator>/<version> (<os_type> <os_version>; <arch>) <terminal>[ (<suffix>)]"). The
+	// os_info values are free text such as "Mac OS 15.5.0", "Windows 10.0.26100" or "Arch Linux
+	// Rolling Release"; the terminal is TERM_PROGRAM[/version], TERM, or a detected name.
+	codexClientAgent = regexp.MustCompile(`^(?:codex_cli_rs|codex-tui|codex_exec|codex_vscode)/[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]{0,24} (\([A-Za-z][ -'*-:<-~]{0,63}; [A-Za-z0-9_]{1,16}\)(?: [!-'*-~]{1,64})?)`)
+	codexPlatform    = regexp.MustCompile(`^\([A-Za-z][ -'*-:<-~]{0,63}; [A-Za-z0-9_]{1,16}\)(?: [!-'*-~]{1,64})?$`)
 	claudeClient     = regexp.MustCompile(`^claude-cli/[0-9]+\.[0-9]+\.[0-9]+ \(external, [a-z-]{1,32}\)$`)
 	// The Stainless values the Anthropic SDK reports on the platforms Claude Code runs on.
 	claudeOS      = regexp.MustCompile(`^(MacOS|Windows|Linux|FreeBSD)$`)
@@ -136,7 +159,10 @@ func (s *Service) Fingerprint(ctx context.Context, id string) (Fingerprint, erro
 	if !fingerprintProvider(row.Provider) {
 		return Fingerprint{}, ErrFingerprintUnsupported
 	}
-	result := Fingerprint{Provider: row.Provider, Profile: decodeProfile(row.ClientProfile)}
+	result := Fingerprint{Provider: row.Provider, Profile: decodeProfile(row.ClientProfile), Identity: identityOf(row)}
+	if row.Provider == "codex" && result.Identity.Mode != "off" {
+		result.DeviceID = CodexInstallationID(result.Identity.Seed)[:8]
+	}
 	if row.Provider == "claude" {
 		credential, err := s.decrypt(row)
 		if err != nil {
@@ -149,19 +175,38 @@ func (s *Service) Fingerprint(ctx context.Context, id string) (Fingerprint, erro
 	return result, nil
 }
 
-// SetFingerprint stores an administrator's fingerprint. An empty profile clears it, so the next
-// native client is learned again.
-func (s *Service) SetFingerprint(ctx context.Context, id string, profile ClientProfile) (Fingerprint, error) {
-	return s.changeFingerprint(ctx, id, &profile, false, "account.fingerprint")
+// SetFingerprint stores an administrator's fingerprint and identity settings. An empty profile clears
+// it, so the next native client is learned again.
+func (s *Service) SetFingerprint(ctx context.Context, id string, profile ClientProfile, identity ClientIdentity) (Fingerprint, error) {
+	return s.changeFingerprint(ctx, id, &profile, &identity, false, "account.fingerprint")
 }
 
-// ResetFingerprint clears the profile; with device it also gives a Claude account a new device ID,
-// which the provider sees as a new machine.
+// ResetFingerprint clears the profile; with device it also gives the account a new device identity
+// (a Claude device ID or a Codex convergence seed), which the provider sees as a new machine.
 func (s *Service) ResetFingerprint(ctx context.Context, id string, device bool) (Fingerprint, error) {
-	return s.changeFingerprint(ctx, id, nil, device, "account.fingerprint_reset")
+	return s.changeFingerprint(ctx, id, nil, nil, device, "account.fingerprint_reset")
 }
 
-func (s *Service) changeFingerprint(ctx context.Context, id string, profile *ClientProfile, device bool, action string) (Fingerprint, error) {
+func identityOf(row db.Account) ClientIdentity {
+	identity := ClientIdentity{Mode: row.FingerprintMode, TLS: row.TlsFingerprint}
+	if row.FingerprintSeed != nil {
+		identity.Seed = *row.FingerprintSeed
+	}
+	if !convergenceModes[identity.Mode] {
+		identity.Mode = "off"
+	}
+	return identity
+}
+
+func newSeed() (string, error) {
+	raw := make([]byte, 16)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return stableUUID(raw), nil
+}
+
+func (s *Service) changeFingerprint(ctx context.Context, id string, profile *ClientProfile, requested *ClientIdentity, device bool, action string) (Fingerprint, error) {
 	s.mu.Lock()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -179,7 +224,7 @@ func (s *Service) changeFingerprint(ctx context.Context, id string, profile *Cli
 		s.mu.Unlock()
 		return Fingerprint{}, err
 	}
-	if !fingerprintProvider(row.Provider) || device && row.Provider != "claude" {
+	if !fingerprintProvider(row.Provider) {
 		s.mu.Unlock()
 		return Fingerprint{}, ErrFingerprintUnsupported
 	}
@@ -202,7 +247,32 @@ func (s *Service) changeFingerprint(ctx context.Context, id string, profile *Cli
 		s.mu.Unlock()
 		return Fingerprint{}, err
 	}
-	if device {
+	identity := identityOf(row)
+	if requested != nil {
+		// Convergence applies to Codex identifiers and the TLS profile to Claude connections only.
+		if !convergenceModes[requested.Mode] || row.Provider != "codex" && requested.Mode != "off" || row.Provider != "claude" && requested.TLS {
+			s.mu.Unlock()
+			return Fingerprint{}, ErrInput
+		}
+		identity.Mode, identity.TLS = requested.Mode, requested.TLS
+	}
+	if row.Provider == "codex" && (identity.Seed == "" && identity.Mode != "off" || device) {
+		seed, err := newSeed()
+		if err != nil {
+			s.mu.Unlock()
+			return Fingerprint{}, err
+		}
+		identity.Seed = seed
+	}
+	var seed *string
+	if identity.Seed != "" {
+		seed = &identity.Seed
+	}
+	if _, err := q.SetClientIdentity(ctx, db.SetClientIdentityParams{ID: id, TenantID: s.tenantID, FingerprintMode: identity.Mode, FingerprintSeed: seed, TlsFingerprint: identity.TLS, UpdatedAt: s.now().Unix()}); err != nil {
+		s.mu.Unlock()
+		return Fingerprint{}, err
+	}
+	if device && row.Provider == "claude" {
 		credential, err := s.decrypt(row)
 		if err != nil {
 			s.mu.Unlock()
@@ -232,4 +302,28 @@ func (s *Service) changeFingerprint(ctx context.Context, id string, profile *Cli
 	}
 	s.mu.Unlock()
 	return s.Fingerprint(ctx, id)
+}
+
+// stableUUID formats 16 bytes as a version 4, variant 1 UUID.
+func stableUUID(b []byte) string {
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+// derivedUUID deterministically derives a UUIDv4-shaped identifier: one seed always yields one value.
+func derivedUUID(parts ...string) string {
+	sum := sha256.Sum256([]byte(strings.Join(parts, ":")))
+	return stableUUID(sum[:16])
+}
+
+// CodexInstallationID is the account's converged Codex installation identifier.
+func CodexInstallationID(seed string) string { return derivedUUID("sublane:codex-install-id:v1", seed) }
+
+// CodexSessionID is the account's converged Codex session identifier.
+func CodexSessionID(seed string) string { return derivedUUID("sublane:codex-session-id:v1", seed) }
+
+// CodexThreadID derives one converged thread per real client conversation.
+func CodexThreadID(seed, conversation string) string {
+	return derivedUUID("sublane:codex-thread-id:v1", seed, conversation)
 }

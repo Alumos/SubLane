@@ -43,3 +43,7 @@ WHERE id = sqlc.arg(id) AND tenant_id = sqlc.arg(tenant_id) AND client_profile I
 -- name: SetClientProfile :execrows
 UPDATE accounts SET client_profile = sqlc.narg(client_profile), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND tenant_id = sqlc.arg(tenant_id);
+
+-- name: SetClientIdentity :execrows
+UPDATE accounts SET fingerprint_mode = sqlc.arg(fingerprint_mode), fingerprint_seed = sqlc.narg(fingerprint_seed), tls_fingerprint = sqlc.arg(tls_fingerprint), updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id) AND tenant_id = sqlc.arg(tenant_id);

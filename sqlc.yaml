@@ -30,3 +30,5 @@ sql:
             go_type: "bool"
           - column: "account_groups.quota_failover"
             go_type: "bool"
+          - column: "accounts.tls_fingerprint"
+            go_type: "bool"

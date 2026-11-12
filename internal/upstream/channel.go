@@ -104,7 +104,7 @@ func channelSession(headers http.Header, body []byte) string {
 }
 
 func (c *Client) executionTransport(credential accounts.Credential, headers http.Header, body []byte) *engineTransport {
-	var base http.RoundTripper = &boundTransport{base: c.inference.Transport, address: credential.ProxyURL}
+	var base http.RoundTripper = &boundTransport{base: c.inference.Transport, address: credential.ProxyURL, fingerprint: usesTLSFingerprint(credential)}
 	if credential.Kind() == "openai" {
 		base = &channelTransport{base: base, credential: credential, session: channelSession(headers, body)}
 	}
