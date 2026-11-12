@@ -10,19 +10,21 @@ import (
 
 // Credential is internal secret material. HTTP responses must use Account instead.
 type Credential struct {
-	BaseURL      string                     `json:"base_url,omitempty"`
-	APIPlatform  string                     `json:"api_platform,omitempty"`
-	APIProtocol  string                     `json:"api_protocol,omitempty"`
-	ProxyURL     string                     `json:"-"`
-	Provider     string                     `json:"provider,omitempty"`
-	Metadata     map[string]json.RawMessage `json:"metadata,omitempty"`
-	AccessToken  string                     `json:"access_token"`
-	RefreshToken string                     `json:"refresh_token"`
-	IDToken      string                     `json:"id_token,omitempty"`
-	AccountID    string                     `json:"account_id"`
-	Email        string                     `json:"email,omitempty"`
-	Plan         string                     `json:"plan,omitempty"`
-	ExpiresAt    int64                      `json:"expires_at"`
+	BaseURL     string `json:"base_url,omitempty"`
+	APIPlatform string `json:"api_platform,omitempty"`
+	APIProtocol string `json:"api_protocol,omitempty"`
+	ProxyURL    string `json:"-"`
+	// ClientPlatform is the account's pinned client platform (for example "(Mac OS 15.5.0; arm64) iTerm.app/3.6.1").
+	ClientPlatform string                     `json:"-"`
+	Provider       string                     `json:"provider,omitempty"`
+	Metadata       map[string]json.RawMessage `json:"metadata,omitempty"`
+	AccessToken    string                     `json:"access_token"`
+	RefreshToken   string                     `json:"refresh_token"`
+	IDToken        string                     `json:"id_token,omitempty"`
+	AccountID      string                     `json:"account_id"`
+	Email          string                     `json:"email,omitempty"`
+	Plan           string                     `json:"plan,omitempty"`
+	ExpiresAt      int64                      `json:"expires_at"`
 	// Keep rejection with the encrypted token so a restart cannot make it eligible for fallback.
 	Rejected bool `json:"access_token_rejected,omitempty"`
 }

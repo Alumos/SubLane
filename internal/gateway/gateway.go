@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -234,6 +235,14 @@ func (s *Service) Open(ctx context.Context, userID, groupID int64, raw []byte, h
 	}
 	if err != nil {
 		return nil, err
+	}
+	if entry.record.Provider == "codex" {
+		// The first native Codex client pins the account's platform; later clients on any machine reuse it.
+		if platform := accounts.CodexClientPlatform(headers.Get("User-Agent")); platform != "" {
+			if learnErr := s.accounts.LearnClientPlatform(ctx, id, platform); learnErr != nil {
+				entry.log(slog.LevelWarn, "Unable to pin client platform", "client_platform_failed")
+			}
+		}
 	}
 	outgoing := headers.Clone()
 	if outgoing == nil {

@@ -85,6 +85,11 @@ func (c *Client) startEngine(parent context.Context, claudeVersions ...string) (
 		claudeVersion = claudeVersions[0]
 	}
 	cfg.ClaudeHeaderDefaults.UserAgent = claudeUserAgent(claudeVersion)
+	// Pin each Claude account to one device profile (User-Agent and X-Stainless OS, arch, runtime and
+	// package versions), as CLIProxyAPI does, so clients on different machines sharing an account
+	// present a single fingerprint. Profiles are keyed by the stable execution Auth ID.
+	stabilize := true
+	cfg.ClaudeHeaderDefaults.StabilizeDeviceProfile = &stabilize
 	// Preserve caller tool definitions; do not inject an image tool into every coding request.
 	if err := json.Unmarshal([]byte(`"passthrough"`), &cfg.DisableImageGeneration); err != nil {
 		return fail(err)
@@ -413,6 +418,7 @@ type engineTransport struct {
 	validateGeminiStream bool
 	maxResponseBytes     int64
 	codexVersion         string
+	codexPlatform        string
 	grokVersion          string
 	base                 http.RoundTripper
 	mu                   sync.Mutex
@@ -430,14 +436,14 @@ func (t *engineTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	if t.codexVersion != "" && r.URL.Host == "chatgpt.com" && strings.HasPrefix(r.URL.Path, "/backend-api/codex/") {
 		// Clone before overriding SDK headers; unrelated providers and shared request objects remain untouched.
 		r = r.Clone(r.Context())
-		applyCodexVersion(r.Header, t.codexVersion)
+		applyCodexVersion(r.Header, t.codexVersion, t.codexPlatform)
 	}
 	if t.grokVersion != "" && r.URL.Host == "cli-chat-proxy.grok.com" && strings.HasPrefix(r.URL.Path, "/v1/") {
 		// Apply the durable policy after the pinned SDK's obsolete headers, without mutating its request.
 		r = r.Clone(r.Context())
 		applyGrokVersion(r.Header, t.grokVersion)
 	}
-	response, err := t.base.RoundTrip(r)
+	response, err := t.roundTripConnect(r)
 	if err != nil {
 		t.mu.Lock()
 		t.lastStatus, t.lastRequestID = 0, ""
@@ -542,4 +548,40 @@ func (c *Client) Close() {
 	}
 	c.http.CloseIdleConnections()
 	c.inference.CloseIdleConnections()
+}
+
+// Connection-phase failures (DNS, TCP dial, proxy CONNECT) happen before any request byte reaches the
+// provider, so replaying them cannot duplicate work or billing. Anything later is never replayed.
+var connectRetryDelays = []time.Duration{250 * time.Millisecond, time.Second}
+
+func connectFailure(err error) bool {
+	var op *net.OpError
+	return errors.As(err, &op) && (op.Op == "dial" || op.Op == "proxyconnect")
+}
+
+func (t *engineTransport) roundTripConnect(r *http.Request) (*http.Response, error) {
+	for attempt := 0; ; attempt++ {
+		request := r
+		if attempt > 0 {
+			request = r.Clone(r.Context())
+			if r.Body != nil && r.Body != http.NoBody {
+				body, err := r.GetBody()
+				if err != nil {
+					return nil, err
+				}
+				request.Body = body
+			}
+		}
+		response, err := t.base.RoundTrip(request)
+		if err == nil || !connectFailure(err) || attempt >= len(connectRetryDelays) || r.Body != nil && r.Body != http.NoBody && r.GetBody == nil {
+			return response, err
+		}
+		timer := time.NewTimer(connectRetryDelays[attempt])
+		select {
+		case <-r.Context().Done():
+			timer.Stop()
+			return nil, err
+		case <-timer.C:
+		}
+	}
 }

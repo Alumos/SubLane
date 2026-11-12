@@ -108,6 +108,7 @@ func TestGatewayKeepsAccountAffinityAndBoundsActiveRequests(t *testing.T) {
 	if _, err := service.SetEnabled(ctx, mapping[selected], false); err != nil {
 		t.Fatal(err)
 	}
+	strictBinding(t, gateway, 1)
 	if _, err := gateway.Open(ctx, 1, 1, raw, headers, Responses); !errors.Is(err, accounts.ErrDisabled) {
 		t.Fatal("disabled conversation silently switched accounts", err)
 	}

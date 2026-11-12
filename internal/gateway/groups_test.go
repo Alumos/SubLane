@@ -58,6 +58,7 @@ func TestGroupRoutingAndAffinityNeverEscapeTheirPool(t *testing.T) {
 		t.Fatal(err)
 	}
 	raw := []byte(`{"model":"synthetic-model","input":"synthetic prompt"}`)
+	strictBinding(t, gateway, a.ID)
 	if _, err := gateway.Open(ctx, 1, a.ID, raw, http.Header{"Session_id": {"same-session"}}, Responses); !errors.Is(err, ErrAffinityUnavailable) {
 		t.Fatal("removed account silently replaced", err)
 	}

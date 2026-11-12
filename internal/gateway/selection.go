@@ -168,6 +168,8 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	// failoverProvider is set when an exhausted binding moves; foreignState is the binding's new fingerprint set.
 	failoverProvider := ""
 	var foreignState []byte
+	var failoverFrom error
+	existingAccount := ""
 	if session != "" && derived {
 		// A derived binding is only a preference: unavailable resources fall back to normal scheduling.
 		existing, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: digest[:], Now: now}, scope)
@@ -186,9 +188,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 		if existing != nil {
 			route.Strategy = "affinity"
 			id := existing.AccountID
-			if !allowed[id] {
-				return id, digest, ErrAffinityUnavailable
-			}
+			existingAccount = id
 			var bound *accounts.Account
 			for i := range available {
 				if available[i].ID == id {
@@ -196,20 +196,41 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 					break
 				}
 			}
-			if bound == nil {
-				return id, digest, accounts.ErrNotFound
+			boundProvider := preferredProvider(kind)
+			if bound != nil {
+				boundProvider = bound.Provider
 			}
-			if !s.accounts.ProviderEnabled(bound.Provider) {
+			// failover moves an unusable binding when the group allows it and the request carries no
+			// provider-held state; otherwise it returns the cause and the conversation keeps its account.
+			failover := func(cause error) error {
+				if !failoverCause(cause) || !policy.Routing.QuotaFailover || carrier == nil || !carrier.Movable || existing.Provider != scope {
+					return cause
+				}
+				set, encoded, ok := mergeForeignState(existing.ForeignState, carrier.Present)
+				if !ok {
+					return cause
+				}
+				carrier.Strip, foreignState, failoverProvider, replacement, failoverFrom = set, encoded, boundProvider, existing, cause
+				return nil
+			}
+			switch {
+			case !allowed[id]:
+				if err := failover(ErrAffinityUnavailable); err != nil {
+					return id, digest, err
+				}
+			case bound == nil:
+				if err := failover(accounts.ErrNotFound); err != nil {
+					return id, digest, err
+				}
+			case !s.accounts.ProviderEnabled(bound.Provider):
 				return id, digest, accounts.ErrProviderDisabled
-			}
-			if !policy.AllowsProvider(bound.Provider) {
+			case !policy.AllowsProvider(bound.Provider):
 				return id, digest, ErrAffinityUnavailable
-			}
-			if kind.codexOnly() && bound.Provider != "codex" {
+			case kind.codexOnly() && bound.Provider != "codex":
 				return id, digest, upstream.ErrInput
 			}
 			reselect := false
-			if model != "" && bound.Enabled && bound.Status != "reauth_required" {
+			if failoverProvider == "" && model != "" && bound.Enabled && bound.Status != "reauth_required" {
 				// A model change alone does not change account identity. After a recorded
 				// account move, older opaque state must still stay off the new account.
 				if affinity == continuationAffinity && existing.Rebound && existing.Model != "" && bindingModel != existing.Model {
@@ -231,36 +252,36 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 					reselect = true
 				}
 			}
-			if reselect {
-				replacement = existing
-			} else {
+			admit := func() error {
 				if model != "" && !policy.AllowsResource(bound.Provider, model) {
-					return id, digest, ErrModelNotAllowed
+					return ErrModelNotAllowed
 				}
 				if err := s.accountAdmission(*bound); err != nil {
-					return id, digest, err
+					return err
 				}
 				if err := s.modelAdmission(ctx, q, id, model); err != nil {
-					return id, digest, err
+					return err
 				}
 				if err := quotaAdmission(*bound, model); err != nil {
-					var quota *QuotaError
-					// Groups that turn failover off keep the strict rule that conversations never move.
-					if !errors.As(err, &quota) || !policy.Routing.QuotaFailover || carrier == nil || !carrier.Movable || existing.Provider != scope {
-						return id, digest, err
-					}
-					set, encoded, ok := mergeForeignState(existing.ForeignState, carrier.Present)
-					if !ok {
-						return id, digest, err
-					}
-					carrier.Strip, foreignState, failoverProvider, replacement = set, encoded, bound.Provider, existing
+					return err
 				}
-			}
-			if failoverProvider == "" && !reselect {
 				if scheme != 0 {
 					if _, err := allocations.Check(ctx, q, scheme, userID, groupID, id, model, now, s.location()); err != nil {
+						return err
+					}
+				}
+				return nil
+			}
+			switch {
+			case reselect:
+				replacement = existing
+			case failoverProvider != "":
+			default:
+				if err := admit(); err != nil {
+					if err := failover(err); err != nil {
 						return id, digest, err
 					}
+					break
 				}
 				if bindingModel == "" {
 					bindingModel = existing.Model
@@ -412,6 +433,10 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 		}
 	}
 	if len(candidates) == 0 {
+		// A conversation that found nowhere to move reports why its own account failed.
+		if failoverFrom != nil {
+			return existingAccount, digest, failoverFrom
+		}
 		if allocationErr != nil {
 			return "", digest, allocationErr
 		}

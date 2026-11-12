@@ -212,6 +212,7 @@ ALTER TABLE accounts DROP COLUMN reset_check_at;
 ALTER TABLE accounts DROP COLUMN usage_revision;
 ALTER TABLE account_affinity DROP COLUMN rebound;
 ALTER TABLE account_affinity DROP COLUMN model;
+ALTER TABLE accounts DROP COLUMN client_platform;
 ALTER TABLE account_groups DROP COLUMN quota_failover;
 ALTER TABLE account_affinity DROP COLUMN foreign_state;
 DROP INDEX account_groups_active_name;

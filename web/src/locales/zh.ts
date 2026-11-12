@@ -1765,10 +1765,10 @@ export const zh: Record<keyof typeof en, string> = {
   sessionStickyHint:
     '对未携带会话 ID 的对话，按开头提示词的哈希固定到同一资源，并让子代理优先使用父会话的资源。资源不可用时仍会自动切换。可提高上游提示词缓存命中率。',
   sessionStickyEnabled: '已开启会话粘性',
-  quotaFailover: '额度耗尽时允许会话切换账号',
+  quotaFailover: '账号不可用时自动切换账号',
   quotaFailoverHint:
-    '已有会话所在账号额度耗尽时，改为切换到同一服务商的其他订阅继续，而不是直接报错。原账号的加密推理内容不会发送给新账号，可见的对话记录会保留。使用服务端存储状态的会话不会切换。',
-  quotaFailoverEnabled: '已开启额度耗尽切换',
+    '会话所在账号额度耗尽、被限流 5 分钟以上、被停用、需要重新授权或被移出资源组时，自动切换到同一服务商的其他账号继续，而不是直接报错。原账号的加密推理内容不会发送给新账号，可见的对话记录会保留。使用服务端存储状态的会话不会切换。',
+  quotaFailoverEnabled: '已开启账号自动切换',
   editChannel: '编辑渠道',
   channelKeyKeepHint: '留空则保留已保存的密钥。已保存的密钥不会显示。',
   saveChannel: '保存渠道',

@@ -1,0 +1,129 @@
+name: Build cache
+
+# Actions caches are scoped to the ref that saved them: pull request and tag runs cannot read each
+# other's caches, but every ref can read the default branch's. After each merge this workflow
+# compiles (without testing) on main, so the next pull request and release tag restore an almost
+# current build and recompile only what changed.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-cache
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go caches
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      # The keys match the CI jobs that restore them.
+      - name: Restore Go build cache
+        id: build-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-build-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            go-build-${{ runner.os }}-${{ hashFiles('go.sum') }}-
+            go-build-${{ runner.os }}-
+      - name: Compile packages and tests
+        run: |
+          mkdir -p web/dist && touch web/dist/.keep
+          go build ./...
+          go vet ./...
+      - name: Save Go build cache
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
+      - name: Clear the normal build cache
+        run: go clean -cache
+      - name: Restore Go race build cache
+        id: race-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Paths are part of the cache version and must match the CI restore exactly.
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-race-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            go-race-${{ runner.os }}-${{ hashFiles('go.sum') }}-
+            go-race-${{ runner.os }}-
+      - name: Compile race-instrumented tests
+        # -run '^$' builds and links every test binary without running a test.
+        run: go test -race -run '^$' ./... > /dev/null
+      - name: Save Go race build cache
+        if: steps.race-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.race-cache.outputs.cache-primary-key }}
+
+  containers:
+    name: Container caches (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        id: buildx
+      - name: Cache BuildKit mounts
+        id: mount-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: buildkit-mounts
+          key: buildkit-mounts-${{ matrix.arch }}-${{ hashFiles('go.sum', 'web/pnpm-lock.yaml') }}-${{ hashFiles('**/*.go', 'web/src/**') }}
+          restore-keys: |
+            buildkit-mounts-${{ matrix.arch }}-${{ hashFiles('go.sum', 'web/pnpm-lock.yaml') }}-
+            buildkit-mounts-${{ matrix.arch }}-
+      - name: Inject BuildKit mounts
+        uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723 # v3.4.0
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          dockerfile: Dockerfile
+          cache-dir: buildkit-mounts
+          skip-extraction: ${{ steps.mount-cache.outputs.cache-hit }}
+      - name: Build image layers
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          push: false
+          build-args: |
+            VERSION=0.1.0-dev
+            REVISION=${{ github.sha }}
+            SOURCE_URL=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=container-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=container-${{ matrix.arch }}
+          provenance: false

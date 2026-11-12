@@ -93,7 +93,7 @@ func (q *Queries) DeleteAccount(ctx context.Context, arg DeleteAccountParams) (i
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, provider, name, account_id, email, "plan", enabled, status, credential, expires_at, created_at, updated_at, max_concurrency, models_snapshot, models_revision, tenant_id, proxy_id, reset_config, reset_revision, reset_next_run_at, reset_time_zone, reset_check_at, usage_revision FROM accounts WHERE id = ?1 AND tenant_id = ?2
+SELECT id, provider, name, account_id, email, "plan", enabled, status, credential, expires_at, created_at, updated_at, max_concurrency, models_snapshot, models_revision, tenant_id, proxy_id, reset_config, reset_revision, reset_next_run_at, reset_time_zone, reset_check_at, usage_revision, client_platform FROM accounts WHERE id = ?1 AND tenant_id = ?2
 `
 
 type GetAccountParams struct {
@@ -128,8 +128,29 @@ func (q *Queries) GetAccount(ctx context.Context, arg GetAccountParams) (Account
 		&i.ResetTimeZone,
 		&i.ResetCheckAt,
 		&i.UsageRevision,
+		&i.ClientPlatform,
 	)
 	return i, err
+}
+
+const learnClientPlatform = `-- name: LearnClientPlatform :execrows
+UPDATE accounts SET client_platform = ?1
+WHERE id = ?2 AND tenant_id = ?3 AND client_platform IS NULL
+`
+
+type LearnClientPlatformParams struct {
+	ClientPlatform *string
+	ID             string
+	TenantID       int64
+}
+
+// First observation wins; a pinned platform never changes with later clients.
+func (q *Queries) LearnClientPlatform(ctx context.Context, arg LearnClientPlatformParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, learnClientPlatform, arg.ClientPlatform, arg.ID, arg.TenantID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listAccounts = `-- name: ListAccounts :many

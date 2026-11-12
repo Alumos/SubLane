@@ -405,7 +405,7 @@ func upstreamHeaders(request *http.Request, credential accounts.Credential, clie
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+credential.AccessToken)
 	request.Header.Set("Chatgpt-Account-Id", credential.AccountID)
-	applyCodexVersion(request.Header, version)
+	applyCodexVersion(request.Header, version, credential.ClientPlatform)
 	request.Header.Set("Accept", "application/json")
 	if stream {
 		request.Header.Set("Accept", "text/event-stream")
@@ -418,9 +418,15 @@ func upstreamHeaders(request *http.Request, credential accounts.Credential, clie
 	}
 }
 
-func applyCodexVersion(headers http.Header, version string) {
+// applyCodexVersion presents one client per account: the managed version plus the account's pinned
+// platform. Accounts without a learned platform keep the bare version agent.
+func applyCodexVersion(headers http.Header, version, platform string) {
 	headers.Set("Originator", "codex_cli_rs")
-	headers.Set("User-Agent", "codex_cli_rs/"+version)
+	agent := "codex_cli_rs/" + version
+	if platform != "" {
+		agent += " " + platform
+	}
+	headers.Set("User-Agent", agent)
 	headers.Set("Version", version)
 }
 
