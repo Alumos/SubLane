@@ -100,21 +100,22 @@ jobs:
           persist-credentials: false
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         id: buildx
-      - name: Cache BuildKit mounts
+      # The only writer of the Go build mount that CI and release image builds restore.
+      - name: Cache the Go build mount
         id: mount-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: buildkit-mounts
-          key: buildkit-mounts-${{ matrix.arch }}-${{ hashFiles('go.sum', 'web/pnpm-lock.yaml') }}-${{ hashFiles('**/*.go', 'web/src/**') }}
+          key: buildkit-go-build-${{ matrix.arch }}-${{ hashFiles('go.sum') }}-${{ hashFiles('**/*.go') }}
           restore-keys: |
-            buildkit-mounts-${{ matrix.arch }}-${{ hashFiles('go.sum', 'web/pnpm-lock.yaml') }}-
-            buildkit-mounts-${{ matrix.arch }}-
-      - name: Inject BuildKit mounts
+            buildkit-go-build-${{ matrix.arch }}-${{ hashFiles('go.sum') }}-
+            buildkit-go-build-${{ matrix.arch }}-
+      - name: Inject the Go build mount
         uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723 # v3.4.0
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          dockerfile: Dockerfile
-          cache-dir: buildkit-mounts
+          cache-map: |
+            {"buildkit-mounts/go-build": "/root/.cache/go-build"}
           skip-extraction: ${{ steps.mount-cache.outputs.cache-hit }}
       - name: Build image layers
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
