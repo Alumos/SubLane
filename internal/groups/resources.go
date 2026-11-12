@@ -12,8 +12,8 @@ type Routing struct {
 	AllowAPIFallback bool   `json:"allow_api_fallback"`
 	// SessionSticky derives conversation keys for sessionless clients and lets subagents inherit their parent's resource.
 	SessionSticky bool `json:"session_sticky"`
-	// QuotaFailover lets an existing conversation leave a quota-exhausted account; encrypted state
-	// from the previous account is withheld from the new one.
+	// QuotaFailover (default on) lets an existing conversation leave a quota-exhausted account;
+	// encrypted state from the previous account is withheld from the new one.
 	QuotaFailover bool `json:"quota_failover"`
 }
 

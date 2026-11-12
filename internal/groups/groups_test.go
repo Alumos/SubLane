@@ -410,3 +410,17 @@ func TestDeletedGroupNamesNeverCollide(t *testing.T) {
 		t.Fatal("active names are no longer unique", err)
 	}
 }
+
+func TestQuotaFailoverDefaultsOnAndCanBeTurnedOff(t *testing.T) {
+	_, service, _, account := fixture(t)
+	ctx := context.Background()
+	pool, err := service.Save(ctx, 0, groups.Input{Name: "Synthetic failover pool", Enabled: true, AccountIDs: []string{account.ID}})
+	if err != nil || !pool.Routing.QuotaFailover {
+		t.Fatalf("new pool lacks default quota failover: %+v, %v", pool.Routing, err)
+	}
+	off := groups.Routing{Preference: "protocol", AllowAPIFallback: true}
+	updated, err := service.Save(ctx, pool.ID, groups.Input{Name: "Synthetic failover pool", Enabled: true, AccountIDs: []string{account.ID}, Routing: &off})
+	if err != nil || updated.Routing.QuotaFailover {
+		t.Fatalf("quota failover could not be turned off: %+v, %v", updated.Routing, err)
+	}
+}

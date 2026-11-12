@@ -11,13 +11,13 @@ const groupSchema = z.object({
       preference: z.enum(['protocol', 'subscription_first', 'api_first']),
       allow_api_fallback: z.boolean(),
       session_sticky: z.boolean().optional().default(false),
-      quota_failover: z.boolean().optional().default(false),
+      quota_failover: z.boolean().optional().default(true),
     })
     .default({
       preference: 'protocol',
       allow_api_fallback: true,
       session_sticky: false,
-      quota_failover: false,
+      quota_failover: true,
     }),
   id: z.number().int().positive(),
   name: z.string().min(1),

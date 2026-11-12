@@ -63,7 +63,7 @@ it('selects subscriptions and channels separately with API fallback off by defau
           preference: 'subscription_first',
           allow_api_fallback: false,
           session_sticky: false,
-          quota_failover: false,
+          quota_failover: true,
         })
         return Promise.resolve(
           response({
@@ -130,7 +130,7 @@ it('creates a pool with only selected accounts', async () => {
             preference: 'subscription_first',
             allow_api_fallback: false,
             session_sticky: false,
-            quota_failover: false,
+            quota_failover: true,
           },
           model_policy: { restricted: false, models: [] },
         })
