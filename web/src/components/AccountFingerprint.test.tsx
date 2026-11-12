@@ -62,6 +62,8 @@ it('saves a manual Codex platform with the spaces it contains', async () => {
         arch: '',
         runtime_version: '',
         package_version: '',
+        mode: 'off',
+        tls: false,
       },
     },
   ])

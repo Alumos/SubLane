@@ -856,7 +856,7 @@ export const zh: Record<keyof typeof en, string> = {
   fingerprintSourceNone: '尚未学习，下一个原生客户端会设置它。',
   fingerprintCodexPlatform: '平台与终端',
   fingerprintCodexPlatformHint:
-    'Codex User-Agent 中的平台部分，例如 (Mac OS 15.5.0; arm64) iTerm.app/3.6.1。Codex 版本号由 SubLane 统一管理。',
+    'Codex User-Agent 中的平台部分，例如 (Mac OS 15.5.0; arm64) iTerm.app/3.6.1。Codex 版本号由 SubLane 统一管理。还没有原生客户端使用过的账号使用 (Ubuntu 22.4.0; x86_64) xterm-256color。',
   fingerprintClaudeOS: '操作系统',
   fingerprintClaudeArch: '架构',
   fingerprintRuntimeVersion: '运行时版本',
@@ -864,6 +864,26 @@ export const zh: Record<keyof typeof en, string> = {
   fingerprintClaudeHint:
     '以 X-Stainless 请求头发送。操作系统和架构从第一个 Claude Code 客户端学习；运行时和 SDK 版本跟随 SubLane 管理的 Claude Code 版本，除非在此手动设置。',
   fingerprintAutomatic: '自动',
+  fingerprintConvergence: '标识收敛',
+  fingerprintModeOff: '关闭',
+  fingerprintModeDevice: '设备',
+  fingerprintModeSession: '会话（默认）',
+  fingerprintModeFull: '完全',
+  fingerprintModeOffHint:
+    '每个客户端保留自己的安装 ID、会话 ID 和线程 ID（SubLane 仍按成员隔离会话）。',
+  fingerprintModeDeviceHint:
+    '所有客户端共用一个安装 ID，上游看到一台设备、多个会话。',
+  fingerprintModeSessionHint:
+    '一台设备、一个会话；每个真实对话保留自己的线程，就像一个用户开了多个窗口或子代理。',
+  fingerprintModeFullHint:
+    '所有客户端共用一台设备、一个会话、一个线程，最激进的模式。',
+  fingerprintConvergenceWarning:
+    '收敛默认开启（会话模式）。sub2api 用户曾报告开启收敛后额度缩水，可能原因是所有对话共用一个提示词缓存键；因此会话模式为每个真实对话保留独立的缓存键，只有完全模式才会合并。如果某个账号额度消耗异常快，可改为“设备”或“关闭”。',
+  fingerprintTLS: 'Claude Code TLS 指纹',
+  fingerprintTLSHint:
+    '连接时使用 Node.js 24 上的 Claude Code 的 TLS 握手（JA3 44f88fca…），而不是 Go 的握手，并像真实客户端一样走 HTTP/1.1。',
+  fingerprintInstallation: '安装 ID',
+  fingerprintResetInstallation: '同时重新生成安装 ID',
   fingerprintDevice: '设备 ID',
   fingerprintResetDevice: '同时重新生成设备 ID',
   fingerprintResetDeviceHint: '上游会把此账号视为在一台新设备上登录。',

@@ -411,22 +411,20 @@ func upstreamHeaders(request *http.Request, credential accounts.Credential, clie
 		request.Header.Set("Accept", "text/event-stream")
 	}
 	// Client session metadata is useful; client credentials, cookies and arbitrary proxy headers are never forwarded.
-	for _, key := range []string{"X-Codex-Turn-Metadata", "X-Client-Request-Id", "Session_id", "X-Codex-Beta-Features"} {
-		if value := client.Get(key); len(value) > 0 && len(value) <= 1024 {
-			request.Header.Set(key, value)
-		}
+	if client != nil {
+		newCodexIdentity(credential, client).apply(request.Header)
 	}
 }
 
-// applyCodexVersion presents one client per account: the managed version plus the account's pinned
-// platform. Accounts without a learned platform keep the bare version agent.
+// applyCodexVersion presents one self-consistent client per account: originator, agent product and
+// version header always agree (the backend rejects mismatches), the version follows SubLane's
+// managed Codex release, and the platform is the account's pinned one or the canonical default.
 func applyCodexVersion(headers http.Header, version, platform string) {
-	headers.Set("Originator", "codex_cli_rs")
-	agent := "codex_cli_rs/" + version
-	if platform != "" {
-		agent += " " + platform
+	if platform == "" {
+		platform = accounts.CodexDefaultPlatform
 	}
-	headers.Set("User-Agent", agent)
+	headers.Set("Originator", "codex_cli_rs")
+	headers.Set("User-Agent", "codex_cli_rs/"+version+" "+platform)
 	headers.Set("Version", version)
 }
 

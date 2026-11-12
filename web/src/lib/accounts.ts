@@ -151,10 +151,17 @@ const fingerprintProfileSchema = z.object({
 const fingerprintSchema = z.object({
   provider: z.enum(['codex', 'claude']),
   profile: fingerprintProfileSchema,
+  identity: z
+    .object({
+      mode: z.enum(['off', 'device', 'session', 'full']).default('off'),
+      tls: z.boolean().default(false),
+    })
+    .default({ mode: 'off', tls: false }),
   device_id: z.string().max(8).default(''),
 })
 export type AccountFingerprint = z.infer<typeof fingerprintSchema>
 export type FingerprintInput = Omit<AccountFingerprint['profile'], 'source'>
+export type FingerprintIdentity = AccountFingerprint['identity']
 export const fingerprintProviders = new Set(['codex', 'claude'])
 export function fetchAccountFingerprint(id: string) {
   return request(
@@ -165,11 +172,15 @@ export function fetchAccountFingerprint(id: string) {
 export function saveAccountFingerprint(input: {
   id: string
   profile: FingerprintInput
+  identity: FingerprintIdentity
 }) {
   return request(
     `/api/accounts/${encodeURIComponent(input.id)}/fingerprint`,
     fingerprintSchema,
-    { method: 'PUT', body: JSON.stringify(input.profile) },
+    {
+      method: 'PUT',
+      body: JSON.stringify({ ...input.profile, ...input.identity }),
+    },
   )
 }
 export function resetAccountFingerprint(input: {

@@ -93,7 +93,7 @@ func (q *Queries) DeleteAccount(ctx context.Context, arg DeleteAccountParams) (i
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, provider, name, account_id, email, "plan", enabled, status, credential, expires_at, created_at, updated_at, max_concurrency, models_snapshot, models_revision, tenant_id, proxy_id, reset_config, reset_revision, reset_next_run_at, reset_time_zone, reset_check_at, usage_revision, client_profile FROM accounts WHERE id = ?1 AND tenant_id = ?2
+SELECT id, provider, name, account_id, email, "plan", enabled, status, credential, expires_at, created_at, updated_at, max_concurrency, models_snapshot, models_revision, tenant_id, proxy_id, reset_config, reset_revision, reset_next_run_at, reset_time_zone, reset_check_at, usage_revision, client_profile, fingerprint_mode, fingerprint_seed, tls_fingerprint FROM accounts WHERE id = ?1 AND tenant_id = ?2
 `
 
 type GetAccountParams struct {
@@ -129,6 +129,9 @@ func (q *Queries) GetAccount(ctx context.Context, arg GetAccountParams) (Account
 		&i.ResetCheckAt,
 		&i.UsageRevision,
 		&i.ClientProfile,
+		&i.FingerprintMode,
+		&i.FingerprintSeed,
+		&i.TlsFingerprint,
 	)
 	return i, err
 }
@@ -263,6 +266,35 @@ type SetAccountStatusParams struct {
 func (q *Queries) SetAccountStatus(ctx context.Context, arg SetAccountStatusParams) error {
 	_, err := q.db.ExecContext(ctx, setAccountStatus, arg.Status, arg.UpdatedAt, arg.ID)
 	return err
+}
+
+const setClientIdentity = `-- name: SetClientIdentity :execrows
+UPDATE accounts SET fingerprint_mode = ?1, fingerprint_seed = ?2, tls_fingerprint = ?3, updated_at = ?4
+WHERE id = ?5 AND tenant_id = ?6
+`
+
+type SetClientIdentityParams struct {
+	FingerprintMode string
+	FingerprintSeed *string
+	TlsFingerprint  bool
+	UpdatedAt       int64
+	ID              string
+	TenantID        int64
+}
+
+func (q *Queries) SetClientIdentity(ctx context.Context, arg SetClientIdentityParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setClientIdentity,
+		arg.FingerprintMode,
+		arg.FingerprintSeed,
+		arg.TlsFingerprint,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.TenantID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const setClientProfile = `-- name: SetClientProfile :execrows

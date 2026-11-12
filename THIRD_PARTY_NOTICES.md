@@ -44,6 +44,12 @@ The Radix dropdown menu is pinned to 2.1.16 alongside Dialog 1.1.15 so they shar
 - Integration: public `sdk/cliproxy`, auth/executor interfaces, `sdk/auth` Antigravity helpers, `sdk/api`, `sdk/config`, and translator packages. SubLane retains OAuth state, encrypted persistence, refresh orchestration, routing, and transport ownership. Codex/Claude OAuth parameters and provider metadata handling are adapted from this version’s MIT-licensed sources. Antigravity authorization and refresh reuse public SDK interfaces; Google installed-app client credentials are not duplicated in SubLane source.
 - The SDK starts an internal loopback HTTP listener with all routes blocked, an empty credential registry, a no-op watcher, and automatic refresh disabled. Its CLI, management panel, Home mode, and Redis service are not enabled.
 
+## uTLS
+
+- Project: https://github.com/refraction-networking/utls, version `v1.8.2` (pinned in `go.mod` and `go.sum`).
+- License: BSD-3-Clause; full text in `licenses/utls.txt`.
+- Used to present Claude Code's TLS ClientHello on Claude accounts that opt in to the TLS fingerprint. The Node.js 24 ClientHello parameters follow the capture published by sub2api (https://github.com/Wei-Shaw/sub2api); no sub2api source code is included.
+
 ## Provider logos (Lobe Icons)
 
 - Project: https://github.com/lobehub/lobe-icons

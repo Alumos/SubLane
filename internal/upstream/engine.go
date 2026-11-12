@@ -300,6 +300,10 @@ func (c *Client) runSDK(ctx context.Context, credential accounts.Credential, bod
 	}
 	version := c.codexVersion()
 	transport := c.executionTransport(credential, headers, body)
+	if credential.Kind() == "codex" {
+		transport.codex = newCodexIdentity(credential, headers)
+		body = transport.codex.rewriteBody(body)
+	}
 	transport.validateGeminiStream = credential.Kind() == "antigravity" && (opts.SourceFormat == translator.FormatClaude || opts.SourceFormat == translator.FormatGemini)
 	if !opts.Stream {
 		transport.maxResponseBytes = MaxBody
@@ -419,6 +423,7 @@ type engineTransport struct {
 	maxResponseBytes     int64
 	codexVersion         string
 	codexPlatform        string
+	codex                *codexIdentity
 	claudeProfile        accounts.ClientProfile
 	grokVersion          string
 	base                 http.RoundTripper
@@ -438,6 +443,7 @@ func (t *engineTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		// Clone before overriding SDK headers; unrelated providers and shared request objects remain untouched.
 		r = r.Clone(r.Context())
 		applyCodexVersion(r.Header, t.codexVersion, t.codexPlatform)
+		t.codex.apply(r.Header)
 	}
 	if t.provider == "claude" && r.URL.Host == "api.anthropic.com" {
 		// The account's own platform replaces the SDK's shared baseline; empty fields keep it.
@@ -456,6 +462,10 @@ func (t *engineTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		t.mu.Unlock()
 		return nil, err
 	}
+	overloaded := false
+	if t.provider == "codex" && r.URL.Host == "chatgpt.com" && strings.HasSuffix(r.URL.Path, "/responses") && response.StatusCode == http.StatusOK && strings.HasPrefix(response.Header.Get("Content-Type"), "text/event-stream") {
+		response, overloaded = detectCodexOverload(response)
+	}
 	if response.StatusCode >= 300 && response.StatusCode < 400 {
 		response.Body.Close()
 		return nil, ErrUpstream
@@ -473,6 +483,9 @@ func (t *engineTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 	if response.StatusCode >= 400 {
 		t.retryAfter = response.Header.Get("Retry-After")
+	}
+	if overloaded {
+		t.failureKind = "server_overloaded"
 	}
 	t.mu.Unlock()
 	limit := t.maxResponseBytes
