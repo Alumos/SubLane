@@ -89,7 +89,7 @@ func (s *Service) List(ctx context.Context) ([]Group, error) {
 	}
 	result := make([]Group, 0, len(rows))
 	for _, r := range rows {
-		result = append(result, Group{SubscriptionCount: r.SubscriptionCount, ChannelCount: r.ChannelCount, Routing: Routing{Preference: r.RoutingPreference, AllowAPIFallback: r.AllowApiFallback != 0, SessionSticky: r.SessionSticky}, RestrictedModels: r.RestrictedModels, ID: r.ID, Name: r.Name, Enabled: r.Enabled, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, AccountCount: r.AccountCount, MemberCount: r.MemberCount})
+		result = append(result, Group{SubscriptionCount: r.SubscriptionCount, ChannelCount: r.ChannelCount, Routing: Routing{Preference: r.RoutingPreference, AllowAPIFallback: r.AllowApiFallback != 0, SessionSticky: r.SessionSticky, QuotaFailover: r.QuotaFailover}, RestrictedModels: r.RestrictedModels, ID: r.ID, Name: r.Name, Enabled: r.Enabled, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, AccountCount: r.AccountCount, MemberCount: r.MemberCount})
 	}
 	return result, nil
 }
@@ -115,7 +115,7 @@ func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 	if err != nil {
 		return Detail{}, err
 	}
-	result := Detail{Group: Group{Routing: Routing{Preference: row.RoutingPreference, AllowAPIFallback: row.AllowApiFallback != 0, SessionSticky: row.SessionSticky}, RestrictedModels: row.RestrictedModels, ID: row.ID, Name: row.Name, Enabled: row.Enabled, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, AccountCount: int64(len(ids)), MemberCount: count}, AccountIDs: ids, Resources: []Resource{}}
+	result := Detail{Group: Group{Routing: Routing{Preference: row.RoutingPreference, AllowAPIFallback: row.AllowApiFallback != 0, SessionSticky: row.SessionSticky, QuotaFailover: row.QuotaFailover}, RestrictedModels: row.RestrictedModels, ID: row.ID, Name: row.Name, Enabled: row.Enabled, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, AccountCount: int64(len(ids)), MemberCount: count}, AccountIDs: ids, Resources: []Resource{}}
 	for _, sourceID := range ids {
 		source, err := q.GetAccount(ctx, db.GetAccountParams{ID: sourceID, TenantID: s.tenantID})
 		if err != nil {
@@ -264,7 +264,7 @@ func (s *Service) Save(ctx context.Context, id int64, input Input) (Detail, erro
 		if input.Routing.AllowAPIFallback {
 			fallback = 1
 		}
-		if err := q.SetGroupRouting(ctx, db.SetGroupRoutingParams{ID: id, Preference: input.Routing.Preference, AllowApiFallback: fallback, SessionSticky: input.Routing.SessionSticky}); err != nil {
+		if err := q.SetGroupRouting(ctx, db.SetGroupRoutingParams{ID: id, Preference: input.Routing.Preference, AllowApiFallback: fallback, SessionSticky: input.Routing.SessionSticky, QuotaFailover: input.Routing.QuotaFailover}); err != nil {
 			return Detail{}, err
 		}
 	}

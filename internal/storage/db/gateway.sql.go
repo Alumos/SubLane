@@ -167,7 +167,7 @@ func (q *Queries) ListRoutingAccounts(ctx context.Context, arg ListRoutingAccoun
 }
 
 const listSessionAffinities = `-- name: ListSessionAffinities :many
-SELECT provider, account_id, expires_at, model, rebound FROM account_affinity
+SELECT provider, account_id, expires_at, model, rebound, foreign_state FROM account_affinity
 WHERE user_id = ?1 AND group_id = ?2
 AND session_hash = ?3 AND expires_at > ?4
 ORDER BY provider
@@ -181,11 +181,12 @@ type ListSessionAffinitiesParams struct {
 }
 
 type ListSessionAffinitiesRow struct {
-	Provider  string
-	AccountID string
-	ExpiresAt int64
-	Model     string
-	Rebound   bool
+	Provider     string
+	AccountID    string
+	ExpiresAt    int64
+	Model        string
+	Rebound      bool
+	ForeignState []byte
 }
 
 func (q *Queries) ListSessionAffinities(ctx context.Context, arg ListSessionAffinitiesParams) ([]ListSessionAffinitiesRow, error) {
@@ -208,6 +209,7 @@ func (q *Queries) ListSessionAffinities(ctx context.Context, arg ListSessionAffi
 			&i.ExpiresAt,
 			&i.Model,
 			&i.Rebound,
+			&i.ForeignState,
 		); err != nil {
 			return nil, err
 		}
@@ -220,6 +222,37 @@ func (q *Queries) ListSessionAffinities(ctx context.Context, arg ListSessionAffi
 		return nil, err
 	}
 	return items, nil
+}
+
+const moveAccountAffinity = `-- name: MoveAccountAffinity :exec
+UPDATE account_affinity SET account_id = ?1, model = ?2, expires_at = ?3, rebound = 1, foreign_state = ?4
+WHERE user_id = ?5 AND group_id = ?6 AND session_hash = ?7 AND provider = ?8
+`
+
+type MoveAccountAffinityParams struct {
+	AccountID    string
+	Model        string
+	ExpiresAt    int64
+	ForeignState []byte
+	UserID       int64
+	GroupID      int64
+	SessionHash  []byte
+	Provider     string
+}
+
+// Quota failover records the new account and the encrypted state it must never receive.
+func (q *Queries) MoveAccountAffinity(ctx context.Context, arg MoveAccountAffinityParams) error {
+	_, err := q.db.ExecContext(ctx, moveAccountAffinity,
+		arg.AccountID,
+		arg.Model,
+		arg.ExpiresAt,
+		arg.ForeignState,
+		arg.UserID,
+		arg.GroupID,
+		arg.SessionHash,
+		arg.Provider,
+	)
+	return err
 }
 
 const pruneAccountAffinity = `-- name: PruneAccountAffinity :exec

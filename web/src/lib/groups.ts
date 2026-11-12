@@ -11,11 +11,13 @@ const groupSchema = z.object({
       preference: z.enum(['protocol', 'subscription_first', 'api_first']),
       allow_api_fallback: z.boolean(),
       session_sticky: z.boolean().optional().default(false),
+      quota_failover: z.boolean().optional().default(false),
     })
     .default({
       preference: 'protocol',
       allow_api_fallback: true,
       session_sticky: false,
+      quota_failover: false,
     }),
   id: z.number().int().positive(),
   name: z.string().min(1),
@@ -78,6 +80,7 @@ export function saveGroup({
     preference: 'protocol' | 'subscription_first' | 'api_first'
     allow_api_fallback: boolean
     session_sticky: boolean
+    quota_failover: boolean
   }
   model_policy: { restricted: boolean; models: string[] }
 }) {

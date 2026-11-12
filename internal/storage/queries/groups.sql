@@ -98,7 +98,7 @@ INSERT INTO group_models(group_id,model) VALUES(sqlc.arg(group_id),sqlc.arg(mode
 SELECT model FROM group_models WHERE group_id=sqlc.arg(group_id) ORDER BY model;
 
 -- name: SetGroupRouting :exec
-UPDATE account_groups SET routing_preference=sqlc.arg(preference),allow_api_fallback=sqlc.arg(allow_api_fallback),session_sticky=sqlc.arg(session_sticky)
+UPDATE account_groups SET routing_preference=sqlc.arg(preference),allow_api_fallback=sqlc.arg(allow_api_fallback),session_sticky=sqlc.arg(session_sticky),quota_failover=sqlc.arg(quota_failover)
 WHERE id=sqlc.arg(id);
 
 -- name: GroupHasSubscriptions :one
