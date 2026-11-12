@@ -30,6 +30,9 @@ func (h *accountHTTP) register(router chi.Router) {
 		accounts.Get("/runtime", h.runtime)
 		accounts.Patch("/{id}/limits", h.limits)
 		accounts.Put("/{id}/proxy", h.bindProxy)
+		accounts.Get("/{id}/fingerprint", h.fingerprint)
+		accounts.Put("/{id}/fingerprint", h.setFingerprint)
+		accounts.Delete("/{id}/fingerprint", h.resetFingerprint)
 		accounts.Post("/{id}/resume", h.resume)
 		accounts.Post("/import", h.importCredential)
 		accounts.Post("/api-key", h.saveAPIKey)
@@ -225,6 +228,49 @@ func (h *accountHTTP) bindProxy(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, account)
 }
 
+func (h *accountHTTP) fingerprint(w http.ResponseWriter, r *http.Request) {
+	fingerprint, err := h.service.Fingerprint(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		accountError(w, err)
+		return
+	}
+	writeJSON(w, 200, fingerprint)
+}
+
+func (h *accountHTTP) setFingerprint(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Platform       string `json:"platform"`
+		OS             string `json:"os"`
+		Arch           string `json:"arch"`
+		RuntimeVersion string `json:"runtime_version"`
+		PackageVersion string `json:"package_version"`
+	}
+	if !decodeJSON(w, r, &input) {
+		return
+	}
+	fingerprint, err := h.service.SetFingerprint(r.Context(), chi.URLParam(r, "id"), accounts.ClientProfile{Platform: input.Platform, OS: input.OS, Arch: input.Arch, RuntimeVersion: input.RuntimeVersion, PackageVersion: input.PackageVersion})
+	if err != nil {
+		accountError(w, err)
+		return
+	}
+	writeJSON(w, 200, fingerprint)
+}
+
+func (h *accountHTTP) resetFingerprint(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Device bool `json:"device"`
+	}
+	if !decodeJSON(w, r, &input) {
+		return
+	}
+	fingerprint, err := h.service.ResetFingerprint(r.Context(), chi.URLParam(r, "id"), input.Device)
+	if err != nil {
+		accountError(w, err)
+		return
+	}
+	writeJSON(w, 200, fingerprint)
+}
+
 func (h *accountHTTP) remove(w http.ResponseWriter, r *http.Request) {
 	var input struct{}
 	if !decodeJSON(w, r, &input) {
@@ -305,6 +351,8 @@ func accountError(w http.ResponseWriter, err error) {
 		status, code = 409, err.Error()
 	case errors.Is(err, upstream.ErrUsageUnsupported):
 		status, code = 400, "provider_usage_unsupported"
+	case errors.Is(err, accounts.ErrFingerprintUnsupported):
+		status, code = 400, "fingerprint_unsupported"
 	case errors.Is(err, accounts.ErrInput):
 		status, code = 400, "invalid_account_input"
 	case errors.Is(err, accounts.ErrProviderDisabled):

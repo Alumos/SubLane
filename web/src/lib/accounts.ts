@@ -140,6 +140,48 @@ export function bindAccountProxy(input: { id: string; proxy_id: string }) {
     { method: 'PUT', body: JSON.stringify({ proxy_id: input.proxy_id }) },
   )
 }
+const fingerprintProfileSchema = z.object({
+  source: z.enum(['', 'learned', 'manual']).default(''),
+  platform: z.string().max(160).default(''),
+  os: z.string().max(32).default(''),
+  arch: z.string().max(32).default(''),
+  runtime_version: z.string().max(32).default(''),
+  package_version: z.string().max(32).default(''),
+})
+const fingerprintSchema = z.object({
+  provider: z.enum(['codex', 'claude']),
+  profile: fingerprintProfileSchema,
+  device_id: z.string().max(8).default(''),
+})
+export type AccountFingerprint = z.infer<typeof fingerprintSchema>
+export type FingerprintInput = Omit<AccountFingerprint['profile'], 'source'>
+export const fingerprintProviders = new Set(['codex', 'claude'])
+export function fetchAccountFingerprint(id: string) {
+  return request(
+    `/api/accounts/${encodeURIComponent(id)}/fingerprint`,
+    fingerprintSchema,
+  )
+}
+export function saveAccountFingerprint(input: {
+  id: string
+  profile: FingerprintInput
+}) {
+  return request(
+    `/api/accounts/${encodeURIComponent(input.id)}/fingerprint`,
+    fingerprintSchema,
+    { method: 'PUT', body: JSON.stringify(input.profile) },
+  )
+}
+export function resetAccountFingerprint(input: {
+  id: string
+  device: boolean
+}) {
+  return request(
+    `/api/accounts/${encodeURIComponent(input.id)}/fingerprint`,
+    fingerprintSchema,
+    { method: 'DELETE', body: JSON.stringify({ device: input.device }) },
+  )
+}
 export function deleteAccount(id: string) {
   return request(`/api/accounts/${encodeURIComponent(id)}`, z.undefined(), {
     method: 'DELETE',
@@ -166,6 +208,7 @@ const messages = {
   account_reauthorization_required: 'accountReauthorizeHint',
   account_refresh_failed: 'accountRefreshFailed',
   invalid_proxy_input: 'proxyInvalidInput',
+  fingerprint_unsupported: 'fingerprintUnsupported',
   proxy_not_found: 'proxyNotFound',
   oauth_state_invalid: 'oauthStateInvalid',
   oauth_callback_invalid: 'oauthCallbackInvalid',

@@ -158,6 +158,12 @@ func auditTarget(r *http.Request) (string, string, string) {
 			if tail == "proxy" && r.Method == "PUT" {
 				action = "account.proxy"
 			}
+			if tail == "fingerprint" && r.Method == "PUT" {
+				action = "account.fingerprint"
+			}
+			if tail == "fingerprint" && r.Method == "DELETE" {
+				action = "account.fingerprint_reset"
+			}
 			if tail == "" && r.Method == "PATCH" {
 				action = "account.update"
 			}

@@ -419,6 +419,7 @@ type engineTransport struct {
 	maxResponseBytes     int64
 	codexVersion         string
 	codexPlatform        string
+	claudeProfile        accounts.ClientProfile
 	grokVersion          string
 	base                 http.RoundTripper
 	mu                   sync.Mutex
@@ -437,6 +438,10 @@ func (t *engineTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		// Clone before overriding SDK headers; unrelated providers and shared request objects remain untouched.
 		r = r.Clone(r.Context())
 		applyCodexVersion(r.Header, t.codexVersion, t.codexPlatform)
+	}
+	if t.provider == "claude" && r.URL.Host == "api.anthropic.com" {
+		// The account's own platform replaces the SDK's shared baseline; empty fields keep it.
+		r = applyClaudeProfile(r, t.claudeProfile)
 	}
 	if t.grokVersion != "" && r.URL.Host == "cli-chat-proxy.grok.com" && strings.HasPrefix(r.URL.Path, "/v1/") {
 		// Apply the durable policy after the pinned SDK's obsolete headers, without mutating its request.
@@ -584,4 +589,19 @@ func (t *engineTransport) roundTripConnect(r *http.Request) (*http.Response, err
 		case <-timer.C:
 		}
 	}
+}
+
+func applyClaudeProfile(r *http.Request, profile accounts.ClientProfile) *http.Request {
+	values := [][2]string{{"X-Stainless-Os", profile.OS}, {"X-Stainless-Arch", profile.Arch}, {"X-Stainless-Runtime-Version", profile.RuntimeVersion}, {"X-Stainless-Package-Version", profile.PackageVersion}}
+	cloned := false
+	for _, value := range values {
+		if value[1] == "" {
+			continue
+		}
+		if !cloned {
+			r, cloned = r.Clone(r.Context()), true
+		}
+		r.Header.Set(value[0], value[1])
+	}
+	return r
 }

@@ -14,17 +14,17 @@ type Credential struct {
 	APIPlatform string `json:"api_platform,omitempty"`
 	APIProtocol string `json:"api_protocol,omitempty"`
 	ProxyURL    string `json:"-"`
-	// ClientPlatform is the account's pinned client platform (for example "(Mac OS 15.5.0; arm64) iTerm.app/3.6.1").
-	ClientPlatform string                     `json:"-"`
-	Provider       string                     `json:"provider,omitempty"`
-	Metadata       map[string]json.RawMessage `json:"metadata,omitempty"`
-	AccessToken    string                     `json:"access_token"`
-	RefreshToken   string                     `json:"refresh_token"`
-	IDToken        string                     `json:"id_token,omitempty"`
-	AccountID      string                     `json:"account_id"`
-	Email          string                     `json:"email,omitempty"`
-	Plan           string                     `json:"plan,omitempty"`
-	ExpiresAt      int64                      `json:"expires_at"`
+	// Profile is the account's pinned client fingerprint; it is stored on the account, not the credential.
+	Profile      ClientProfile              `json:"-"`
+	Provider     string                     `json:"provider,omitempty"`
+	Metadata     map[string]json.RawMessage `json:"metadata,omitempty"`
+	AccessToken  string                     `json:"access_token"`
+	RefreshToken string                     `json:"refresh_token"`
+	IDToken      string                     `json:"id_token,omitempty"`
+	AccountID    string                     `json:"account_id"`
+	Email        string                     `json:"email,omitempty"`
+	Plan         string                     `json:"plan,omitempty"`
+	ExpiresAt    int64                      `json:"expires_at"`
 	// Keep rejection with the encrypted token so a restart cannot make it eligible for fallback.
 	Rejected bool `json:"access_token_rejected,omitempty"`
 }

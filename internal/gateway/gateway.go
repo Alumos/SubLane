@@ -236,12 +236,10 @@ func (s *Service) Open(ctx context.Context, userID, groupID int64, raw []byte, h
 	if err != nil {
 		return nil, err
 	}
-	if entry.record.Provider == "codex" {
-		// The first native Codex client pins the account's platform; later clients on any machine reuse it.
-		if platform := accounts.CodexClientPlatform(headers.Get("User-Agent")); platform != "" {
-			if learnErr := s.accounts.LearnClientPlatform(ctx, id, platform); learnErr != nil {
-				entry.log(slog.LevelWarn, "Unable to pin client platform", "client_platform_failed")
-			}
+	// The first native client pins the account's fingerprint; later clients on any machine reuse it.
+	if profile, ok := accounts.ObservedProfile(entry.record.Provider, headers); ok {
+		if learnErr := s.accounts.LearnClientProfile(ctx, id, profile); learnErr != nil {
+			entry.log(slog.LevelWarn, "Unable to pin client fingerprint", "client_profile_failed")
 		}
 	}
 	outgoing := headers.Clone()

@@ -28,7 +28,7 @@ type Account struct {
 	ResetTimeZone  string
 	ResetCheckAt   int64
 	UsageRevision  int64
-	ClientPlatform *string
+	ClientProfile  *string
 }
 
 type AccountGroup struct {
