@@ -117,7 +117,7 @@ function GroupForm({
   )
   const [sticky, setSticky] = useState(value?.routing.session_sticky ?? false)
   const [failover, setFailover] = useState(
-    value?.routing.quota_failover ?? false,
+    value?.routing.quota_failover ?? true,
   )
   const [restricted, setRestricted] = useState(
     value?.restricted_models ?? false,

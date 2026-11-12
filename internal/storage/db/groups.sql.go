@@ -130,8 +130,8 @@ func (q *Queries) CountGroups(ctx context.Context, tenantID int64) (int64, error
 }
 
 const createGroup = `-- name: CreateGroup :execlastid
-INSERT INTO account_groups(tenant_id,name,enabled,created_at,updated_at)
-VALUES(?1,?2,?3,?4,?4)
+INSERT INTO account_groups(tenant_id,name,enabled,created_at,updated_at,quota_failover)
+VALUES(?1,?2,?3,?4,?4,1)
 `
 
 type CreateGroupParams struct {
@@ -141,6 +141,7 @@ type CreateGroupParams struct {
 	Now      int64
 }
 
+// Quota failover is on by default; SetGroupRouting applies an explicit choice.
 func (q *Queries) CreateGroup(ctx context.Context, arg CreateGroupParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, createGroup,
 		arg.TenantID,

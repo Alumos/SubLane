@@ -15,8 +15,9 @@ SELECT * FROM account_groups WHERE id=sqlc.arg(id) AND tenant_id=sqlc.arg(tenant
 SELECT count(*) FROM account_groups WHERE tenant_id=sqlc.arg(tenant_id) AND deleted_at IS NULL;
 
 -- name: CreateGroup :execlastid
-INSERT INTO account_groups(tenant_id,name,enabled,created_at,updated_at)
-VALUES(sqlc.arg(tenant_id),sqlc.arg(name),sqlc.arg(enabled),sqlc.arg(now),sqlc.arg(now));
+-- Quota failover is on by default; SetGroupRouting applies an explicit choice.
+INSERT INTO account_groups(tenant_id,name,enabled,created_at,updated_at,quota_failover)
+VALUES(sqlc.arg(tenant_id),sqlc.arg(name),sqlc.arg(enabled),sqlc.arg(now),sqlc.arg(now),1);
 
 -- name: FindGroupName :one
 SELECT id FROM account_groups WHERE tenant_id=sqlc.arg(tenant_id) AND name=sqlc.arg(name) COLLATE NOCASE AND deleted_at IS NULL;

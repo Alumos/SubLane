@@ -245,7 +245,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 				}
 				if err := quotaAdmission(*bound, model); err != nil {
 					var quota *QuotaError
-					// Opt-in only: the default keeps the strict rule that conversations never move.
+					// Groups that turn failover off keep the strict rule that conversations never move.
 					if !errors.As(err, &quota) || !policy.Routing.QuotaFailover || carrier == nil || !carrier.Movable || existing.Provider != scope {
 						return id, digest, err
 					}
