@@ -15,8 +15,12 @@ jobs:
   prepare:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     outputs:
       tag: ${{ steps.metadata.outputs.tag }}
+      verified: ${{ steps.reuse.outputs.verified }}
       version: ${{ steps.metadata.outputs.version }}
       prerelease: ${{ steps.metadata.outputs.prerelease }}
       image: ${{ steps.metadata.outputs.image }}
@@ -30,6 +34,28 @@ jobs:
       - name: Validate the version and registry path
         id: metadata
         run: node scripts/release.mjs metadata "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" >> "$GITHUB_OUTPUT"
+      # A tag whose tree is byte-identical to a pull request merge commit that passed every CI job
+      # in this repository needs no second test run; any other tag runs the full suite. Only
+      # same-repository pull request runs of ci.yaml count, so forks cannot vouch for a tree.
+      - name: Reuse tests from an identical verified tree
+        id: reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY_ID: ${{ github.repository_id }}
+        run: |
+          tree=$(git rev-parse 'HEAD^{tree}')
+          verified=false
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=verified-tree-$tree&per_page=20" \
+            --jq ".artifacts[] | select(.expired | not) | select(.workflow_run.head_repository_id == $REPOSITORY_ID) | .workflow_run.id")
+          for run in $runs; do
+            if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" \
+              --jq 'select(.conclusion == "success" and .event == "pull_request" and .path == ".github/workflows/ci.yaml") | .id' | grep -q .; then
+              verified=true
+              echo "Tree $tree passed pull request CI run $run; reusing its validation and tests."
+              break
+            fi
+          done
+          echo "verified=$verified" >> "$GITHUB_OUTPUT"
 
   verify:
     needs: prepare
@@ -37,6 +63,7 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       release: true
+      verified: ${{ needs.prepare.outputs.verified == 'true' }}
 
   publish:
     needs: [prepare, verify]

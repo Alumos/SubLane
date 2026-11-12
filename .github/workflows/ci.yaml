@@ -1,7 +1,8 @@
 name: CI
 
-# Merged commits were already tested on their pull request, and release tags rerun the full
-# suite through workflow_call before anything is published.
+# Merged commits were already tested on their pull request. A release tag whose source tree is
+# byte-identical to a passing pull request tree reuses those results (see "Record the verified
+# tree"); any other tag reruns the full suite through workflow_call before anything is published.
 on:
   pull_request:
   workflow_call:
@@ -10,6 +11,10 @@ on:
         type: string
         default: 0.1.0-dev
       release:
+        type: boolean
+        default: false
+      verified:
+        description: The source tree already passed every validation and test job on a pull request.
         type: boolean
         default: false
 
@@ -25,6 +30,7 @@ jobs:
   validation:
     # Independent checks run in parallel; every part shares the same pinned toolchain setup.
     name: Validation (${{ matrix.part }})
+    if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
@@ -102,13 +108,31 @@ jobs:
           docker compose -f docker.compose.yaml -f docker.compose.build.yaml config --quiet
 
   go-tests:
-    name: Go race (${{ matrix.group }})
+    name: Go race (${{ matrix.shard }})
+    if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        group: [gateway-server-1, gateway-server-2, gateway-server-3, gateway-server-4, gateway-server-5, other-1, other-2, other-3, other-4]
+        # Gateway and server run in separate shards balanced by measured race-test time. Each
+        # package's last shard skips the earlier patterns, so new or renamed tests always run.
+        include:
+          - {shard: gateway-1, packages: ./internal/gateway, run: '^Test[AB]'}
+          - {shard: gateway-2, packages: ./internal/gateway, run: '^TestC'}
+          - {shard: gateway-3, packages: ./internal/gateway, run: '^Test[D-G]'}
+          - {shard: gateway-4, packages: ./internal/gateway, run: '^Test[H-N]'}
+          - {shard: gateway-5, packages: ./internal/gateway, run: '^Test[O-Q]'}
+          - {shard: gateway-6, packages: ./internal/gateway, run: '^TestR'}
+          - {shard: gateway-7, packages: ./internal/gateway, skip: '^Test[A-R]'}
+          - {shard: server-1, packages: ./internal/server, run: '^Test([AB]|[O-R])'}
+          - {shard: server-2, packages: ./internal/server, run: '^Test[C-G]'}
+          - {shard: server-3, packages: ./internal/server, run: '^Test[H-N]'}
+          - {shard: server-4, packages: ./internal/server, skip: '^Test[A-R]'}
+          - {shard: other-1, other: allocations}
+          - {shard: other-2, other: backup-auth-alerts}
+          - {shard: other-3, other: rest}
+          - {shard: other-4, other: accounts}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -117,10 +141,9 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      # Race-instrumented objects differ from normal builds, so they keep their own cache. The first
-      # shard compiles the gateway and server with every dependency and saves for the others.
+      # Race-instrumented objects differ from normal builds, so they keep their own cache. The main
+      # branch warms it after each merge (cache.yaml); pull requests only restore it.
       - name: Restore Go race build cache
-        id: go-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -133,40 +156,32 @@ jobs:
       - name: Test with race detector
         shell: bash
         env:
-          TEST_GROUP: ${{ matrix.group }}
+          PACKAGES: ${{ matrix.packages }}
+          RUN: ${{ matrix.run }}
+          SKIP: ${{ matrix.skip }}
+          OTHER: ${{ matrix.other }}
         run: |
-          # Shards partition by test name and package; each final shard is a complement so
-          # examples, fuzz seeds, future test names and new packages are always tested.
+          if [ -n "$PACKAGES" ]; then
+            args=()
+            if [ -n "$RUN" ]; then args+=(-run "$RUN"); fi
+            if [ -n "$SKIP" ]; then args+=(-skip "$SKIP"); fi
+            go test -race -timeout=20m "${args[@]}" "$PACKAGES"
+            exit
+          fi
+          # The rest shard is a complement, so new packages are always tested.
           heavy_a='/internal/allocations$'
           heavy_b='/internal/(backup|auth|alerts)$'
           heavy_c='/internal/accounts$'
-          case "$TEST_GROUP" in
-            gateway-server-1) go test -race -timeout=20m -run '^Test[A-B]' ./internal/gateway ./internal/server ;;
-            gateway-server-2) go test -race -timeout=20m -run '^Test[C-G]' ./internal/gateway ./internal/server ;;
-            gateway-server-3) go test -race -timeout=20m -run '^Test[H-N]' ./internal/gateway ./internal/server ;;
-            gateway-server-4) go test -race -timeout=20m -run '^Test[O-R]' ./internal/gateway ./internal/server ;;
-            gateway-server-5) go test -race -timeout=20m -skip '^Test[A-R]' ./internal/gateway ./internal/server ;;
-            other-1|other-2|other-3|other-4)
-              all=$(go list ./... | grep -vE '/internal/(gateway|server)$')
-              case "$TEST_GROUP" in
-                other-1) package_list=$(grep -E "$heavy_a" <<< "$all") ;;
-                other-2) package_list=$(grep -E "$heavy_b" <<< "$all") ;;
-                other-3) package_list=$(grep -vE "$heavy_a|$heavy_b|$heavy_c" <<< "$all") ;;
-                other-4) package_list=$(grep -E "$heavy_c" <<< "$all") ;;
-              esac
-              mapfile -t packages <<< "$package_list"
-              go test -race -timeout=20m "${packages[@]}"
-              ;;
-            *) echo "unknown test group: $TEST_GROUP" >&2; exit 1 ;;
+          all=$(go list ./... | grep -vE '/internal/(gateway|server)$')
+          case "$OTHER" in
+            allocations) package_list=$(grep -E "$heavy_a" <<< "$all") ;;
+            backup-auth-alerts) package_list=$(grep -E "$heavy_b" <<< "$all") ;;
+            accounts) package_list=$(grep -E "$heavy_c" <<< "$all") ;;
+            rest) package_list=$(grep -vE "$heavy_a|$heavy_b|$heavy_c" <<< "$all") ;;
+            *) echo "unknown package group: $OTHER" >&2; exit 1 ;;
           esac
-      - name: Save Go race build cache
-        if: matrix.group == 'gateway-server-1' && steps.go-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ steps.go-cache.outputs.cache-primary-key }}
+          mapfile -t packages <<< "$package_list"
+          go test -race -timeout=20m "${packages[@]}"
 
   containers:
     name: Container (${{ matrix.arch }})
@@ -269,7 +284,35 @@ jobs:
           VALIDATION_RESULT: ${{ needs.validation.result }}
           GO_TESTS_RESULT: ${{ needs.go-tests.result }}
           CONTAINERS_RESULT: ${{ needs.containers.result }}
+          VERIFIED: ${{ inputs.verified }}
         run: |
-          test "$VALIDATION_RESULT" = success
-          test "$GO_TESTS_RESULT" = success
           test "$CONTAINERS_RESULT" = success
+          if [ "$VERIFIED" = true ]; then
+            # Reused results: the release run builds and smoke-tests its own versioned images only.
+            test "$VALIDATION_RESULT" = skipped
+            test "$GO_TESTS_RESULT" = skipped
+          else
+            test "$VALIDATION_RESULT" = success
+            test "$GO_TESTS_RESULT" = success
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+      # Every job in this run tested the same merge commit. Its tree hash names the artifact, so a
+      # release tag with an identical tree (same code, scripts and workflows) can reuse these results.
+      - name: Record the verified tree
+        id: tree
+        if: github.event_name == 'pull_request'
+        run: |
+          tree=$(git rev-parse 'HEAD^{tree}')
+          mkdir verified
+          printf '%s\n' "$tree" > verified/tree
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          name: verified-tree-${{ steps.tree.outputs.tree }}
+          path: verified/tree
+          retention-days: 14
+          overwrite: true
