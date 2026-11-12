@@ -222,6 +222,8 @@ func (s *Service) Open(ctx context.Context, userID, groupID int64, raw []byte, h
 	}
 	// Hints are inert unless the group enables stickiness; selection reads that policy in its transaction.
 	ctx = withStickyHints(ctx, requestStickyHints(headers, input, kind, session, fromMetadata))
+	failover := newQuotaFailover(input, kind)
+	ctx = withQuotaFailover(ctx, failover)
 	id, digest, err := s.leaseAccount(ctx, entry, session, provider, model, kind, affinity, reviewParentThread(input, headers, model, kind))
 	if id != "" {
 		if account, lookupErr := s.accounts.Get(ctx, id); lookupErr == nil {
@@ -243,6 +245,10 @@ func (s *Service) Open(ctx context.Context, userID, groupID int64, raw []byte, h
 		delete(input, "prompt_cache_key")
 	} else {
 		input["prompt_cache_key"], _ = json.Marshal(hex.EncodeToString(digest[:]))
+	}
+	// Selection names encrypted items from accounts this conversation left; the leased account cannot read them.
+	if stripForeignState(input, failover.Strip) != nil {
+		return nil, upstream.ErrInput
 	}
 	raw, err = json.Marshal(input)
 	if err != nil {

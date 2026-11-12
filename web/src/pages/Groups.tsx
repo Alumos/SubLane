@@ -131,6 +131,8 @@ export function Groups() {
                   )}
                   {group.routing.session_sticky &&
                     ` · ${t('sessionStickyEnabled')}`}
+                  {group.routing.quota_failover &&
+                    ` · ${t('quotaFailoverEnabled')}`}
                 </p>
               </div>
               <div className="flex items-center gap-2">

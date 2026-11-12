@@ -28,3 +28,5 @@ sql:
             go_type: "bool"
           - column: "account_groups.session_sticky"
             go_type: "bool"
+          - column: "account_groups.quota_failover"
+            go_type: "bool"

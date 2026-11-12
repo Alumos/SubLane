@@ -42,6 +42,7 @@ type AccountGroup struct {
 	AllowApiFallback  int64
 	SessionSticky     bool
 	DeletedAt         *int64
+	QuotaFailover     bool
 }
 
 type AlertState struct {

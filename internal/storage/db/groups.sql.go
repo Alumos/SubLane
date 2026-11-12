@@ -171,7 +171,7 @@ func (q *Queries) FindGroupName(ctx context.Context, arg FindGroupNameParams) (i
 }
 
 const getGroup = `-- name: GetGroup :one
-SELECT id, name, enabled, created_at, updated_at, restricted_models, tenant_id, routing_preference, allow_api_fallback, session_sticky, deleted_at FROM account_groups WHERE id=?1
+SELECT id, name, enabled, created_at, updated_at, restricted_models, tenant_id, routing_preference, allow_api_fallback, session_sticky, deleted_at, quota_failover FROM account_groups WHERE id=?1
 `
 
 func (q *Queries) GetGroup(ctx context.Context, id int64) (AccountGroup, error) {
@@ -189,12 +189,13 @@ func (q *Queries) GetGroup(ctx context.Context, id int64) (AccountGroup, error) 
 		&i.AllowApiFallback,
 		&i.SessionSticky,
 		&i.DeletedAt,
+		&i.QuotaFailover,
 	)
 	return i, err
 }
 
 const getTenantGroup = `-- name: GetTenantGroup :one
-SELECT id, name, enabled, created_at, updated_at, restricted_models, tenant_id, routing_preference, allow_api_fallback, session_sticky, deleted_at FROM account_groups WHERE id=?1 AND tenant_id=?2 AND deleted_at IS NULL
+SELECT id, name, enabled, created_at, updated_at, restricted_models, tenant_id, routing_preference, allow_api_fallback, session_sticky, deleted_at, quota_failover FROM account_groups WHERE id=?1 AND tenant_id=?2 AND deleted_at IS NULL
 `
 
 type GetTenantGroupParams struct {
@@ -217,6 +218,7 @@ func (q *Queries) GetTenantGroup(ctx context.Context, arg GetTenantGroupParams) 
 		&i.AllowApiFallback,
 		&i.SessionSticky,
 		&i.DeletedAt,
+		&i.QuotaFailover,
 	)
 	return i, err
 }
@@ -403,7 +405,7 @@ func (q *Queries) ListGroupModels(ctx context.Context, groupID int64) ([]string,
 }
 
 const listGroups = `-- name: ListGroups :many
-SELECT g.id, g.name, g.enabled, g.created_at, g.updated_at, g.restricted_models, g.tenant_id, g.routing_preference, g.allow_api_fallback, g.session_sticky, g.deleted_at, (SELECT count(*) FROM group_accounts a WHERE a.group_id=g.id) AS account_count,
+SELECT g.id, g.name, g.enabled, g.created_at, g.updated_at, g.restricted_models, g.tenant_id, g.routing_preference, g.allow_api_fallback, g.session_sticky, g.deleted_at, g.quota_failover, (SELECT count(*) FROM group_accounts a WHERE a.group_id=g.id) AS account_count,
 (SELECT count(*) FROM group_accounts ga JOIN accounts a ON a.id=ga.account_id WHERE ga.group_id=g.id AND a.provider!='openai') AS subscription_count,
 (SELECT count(*) FROM group_accounts ga JOIN accounts a ON a.id=ga.account_id WHERE ga.group_id=g.id AND a.provider='openai') AS channel_count,
 (SELECT count(*) FROM effective_group_access access WHERE access.group_id=g.id) AS member_count
@@ -422,6 +424,7 @@ type ListGroupsRow struct {
 	AllowApiFallback  int64
 	SessionSticky     bool
 	DeletedAt         *int64
+	QuotaFailover     bool
 	AccountCount      int64
 	SubscriptionCount int64
 	ChannelCount      int64
@@ -449,6 +452,7 @@ func (q *Queries) ListGroups(ctx context.Context, tenantID int64) ([]ListGroupsR
 			&i.AllowApiFallback,
 			&i.SessionSticky,
 			&i.DeletedAt,
+			&i.QuotaFailover,
 			&i.AccountCount,
 			&i.SubscriptionCount,
 			&i.ChannelCount,
@@ -590,14 +594,15 @@ func (q *Queries) SetGroupModelPolicy(ctx context.Context, arg SetGroupModelPoli
 }
 
 const setGroupRouting = `-- name: SetGroupRouting :exec
-UPDATE account_groups SET routing_preference=?1,allow_api_fallback=?2,session_sticky=?3
-WHERE id=?4
+UPDATE account_groups SET routing_preference=?1,allow_api_fallback=?2,session_sticky=?3,quota_failover=?4
+WHERE id=?5
 `
 
 type SetGroupRoutingParams struct {
 	Preference       string
 	AllowApiFallback int64
 	SessionSticky    bool
+	QuotaFailover    bool
 	ID               int64
 }
 
@@ -606,6 +611,7 @@ func (q *Queries) SetGroupRouting(ctx context.Context, arg SetGroupRoutingParams
 		arg.Preference,
 		arg.AllowApiFallback,
 		arg.SessionSticky,
+		arg.QuotaFailover,
 		arg.ID,
 	)
 	return err

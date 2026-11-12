@@ -161,6 +161,13 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	bindingModel := upstream.CatalogModelID(model)
 	var replacement *db.ListSessionAffinitiesRow
 	stickyAccount := ""
+	carrier := quotaFailoverFrom(ctx)
+	if carrier != nil {
+		carrier.Strip = nil
+	}
+	// failoverProvider is set when an exhausted binding moves; foreignState is the binding's new fingerprint set.
+	failoverProvider := ""
+	var foreignState []byte
 	if session != "" && derived {
 		// A derived binding is only a preference: unavailable resources fall back to normal scheduling.
 		existing, err := sessionBinding(ctx, q, db.ListSessionAffinitiesParams{GroupID: groupID, UserID: userID, SessionHash: digest[:], Now: now}, scope)
@@ -237,8 +244,19 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 					return id, digest, err
 				}
 				if err := quotaAdmission(*bound, model); err != nil {
-					return id, digest, err
+					var quota *QuotaError
+					// Opt-in only: the default keeps the strict rule that conversations never move.
+					if !errors.As(err, &quota) || !policy.Routing.QuotaFailover || carrier == nil || !carrier.Movable || existing.Provider != scope {
+						return id, digest, err
+					}
+					set, encoded, ok := mergeForeignState(existing.ForeignState, carrier.Present)
+					if !ok {
+						return id, digest, err
+					}
+					carrier.Strip, foreignState, failoverProvider, replacement = set, encoded, bound.Provider, existing
 				}
+			}
+			if failoverProvider == "" && !reselect {
 				if scheme != 0 {
 					if _, err := allocations.Check(ctx, q, scheme, userID, groupID, id, model, now, s.location()); err != nil {
 						return id, digest, err
@@ -257,6 +275,10 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 				}
 				if err := tx.Commit(); err != nil {
 					return "", digest, err
+				}
+				if carrier != nil && len(existing.ForeignState) > 0 {
+					// State written by accounts this conversation left stays off the current one.
+					carrier.Strip = decodeForeignState(existing.ForeignState)
 				}
 				route.Candidates = 1
 				return id, digest, nil
@@ -293,7 +315,7 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	var coolingModel string
 	var allocationErr error
 	for _, account := range available {
-		if !s.accounts.ProviderEnabled(account.Provider) || !policy.AllowsProvider(account.Provider) || !allowed[account.ID] || !account.Enabled || account.Status == "reauth_required" || (provider != "" && account.Provider != provider) || (kind.codexOnly() && account.Provider != "codex") {
+		if !s.accounts.ProviderEnabled(account.Provider) || !policy.AllowsProvider(account.Provider) || !allowed[account.ID] || !account.Enabled || account.Status == "reauth_required" || (provider != "" && account.Provider != provider) || (kind.codexOnly() && account.Provider != "codex") || (failoverProvider != "" && account.Provider != failoverProvider) {
 			if !s.accounts.ProviderEnabled(account.Provider) || !account.Enabled || account.Status == "reauth_required" {
 				route.Exclusions.Unavailable = min(maxRouteCount, route.Exclusions.Unavailable+1)
 			} else {
@@ -453,7 +475,12 @@ func (s *Service) selectAllocationAccount(ctx context.Context, userID, groupID i
 	}
 	s.next[cursor] = (s.next[cursor] + 1) % period
 	if session != "" {
-		if replacement != nil && replacement.Provider == scope {
+		if failoverProvider != "" {
+			if bindingModel == "" {
+				bindingModel = replacement.Model
+			}
+			err = q.MoveAccountAffinity(ctx, db.MoveAccountAffinityParams{UserID: userID, GroupID: groupID, SessionHash: digest[:], Provider: scope, AccountID: id, Model: bindingModel, ExpiresAt: expires, ForeignState: foreignState})
+		} else if replacement != nil && replacement.Provider == scope {
 			err = q.ReplaceAccountAffinity(ctx, db.ReplaceAccountAffinityParams{UserID: userID, GroupID: groupID, SessionHash: digest[:], Provider: scope, AccountID: id, Model: bindingModel, ExpiresAt: expires})
 		} else {
 			// Creating an auto binding from a legacy scope can also move the account.

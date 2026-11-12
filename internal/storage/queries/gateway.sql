@@ -25,8 +25,13 @@ AND (expires_at < sqlc.arg(threshold) OR model != sqlc.arg(model));
 UPDATE account_affinity SET account_id = sqlc.arg(account_id), model = sqlc.arg(model), expires_at = sqlc.arg(expires_at), rebound = rebound OR account_id != sqlc.arg(account_id)
 WHERE user_id = sqlc.arg(user_id) AND group_id = sqlc.arg(group_id) AND session_hash = sqlc.arg(session_hash) AND provider = sqlc.arg(provider);
 
+-- name: MoveAccountAffinity :exec
+-- Quota failover records the new account and the encrypted state it must never receive.
+UPDATE account_affinity SET account_id = sqlc.arg(account_id), model = sqlc.arg(model), expires_at = sqlc.arg(expires_at), rebound = 1, foreign_state = sqlc.arg(foreign_state)
+WHERE user_id = sqlc.arg(user_id) AND group_id = sqlc.arg(group_id) AND session_hash = sqlc.arg(session_hash) AND provider = sqlc.arg(provider);
+
 -- name: ListSessionAffinities :many
-SELECT provider, account_id, expires_at, model, rebound FROM account_affinity
+SELECT provider, account_id, expires_at, model, rebound, foreign_state FROM account_affinity
 WHERE user_id = sqlc.arg(user_id) AND group_id = sqlc.arg(group_id)
 AND session_hash = sqlc.arg(session_hash) AND expires_at > sqlc.arg(now)
 ORDER BY provider;

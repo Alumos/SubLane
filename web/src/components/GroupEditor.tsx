@@ -116,6 +116,9 @@ function GroupForm({
     value?.routing.allow_api_fallback ?? false,
   )
   const [sticky, setSticky] = useState(value?.routing.session_sticky ?? false)
+  const [failover, setFailover] = useState(
+    value?.routing.quota_failover ?? false,
+  )
   const [restricted, setRestricted] = useState(
     value?.restricted_models ?? false,
   )
@@ -142,6 +145,7 @@ function GroupForm({
           preference,
           allow_api_fallback: fallback,
           session_sticky: sticky,
+          quota_failover: failover,
         },
         model_policy: {
           restricted,
@@ -403,6 +407,22 @@ function GroupForm({
             className="text-xs leading-5 text-muted-foreground"
           >
             {t('sessionStickyHint')}
+          </p>
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={failover}
+              onChange={(event) => setFailover(event.target.checked)}
+              aria-describedby="group-quota-failover-hint"
+              className="mt-0.5 size-4 shrink-0 accent-primary focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <span>{t('quotaFailover')}</span>
+          </label>
+          <p
+            id="group-quota-failover-hint"
+            className="text-xs leading-5 text-muted-foreground"
+          >
+            {t('quotaFailoverHint')}
           </p>
         </fieldset>
         <fieldset className="space-y-3" disabled={mutation.isPending}>
