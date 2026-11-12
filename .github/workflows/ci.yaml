@@ -207,25 +207,25 @@ jobs:
           node-version-file: .node-version
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         id: buildx
-      # Layer caching cannot keep RUN --mount=type=cache directories, so every image rebuilt Go and
-      # frontend dependencies from scratch. Persist those mounts per architecture and source state.
-      - name: Cache BuildKit mounts
-        id: mount-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Layer caching cannot keep RUN --mount=type=cache directories, so every image recompiled Go
+      # from scratch. Only the Go build cache matters on a code change (module and pnpm downloads
+      # are cached layers). Pull request and tag caches are invisible to other refs, so this job
+      # only reads what the main-branch warmer (cache.yaml) saved and never extracts or writes back.
+      - name: Restore the Go build mount
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: buildkit-mounts
-          key: buildkit-mounts-${{ matrix.arch }}-${{ hashFiles('go.sum', 'web/pnpm-lock.yaml') }}-${{ hashFiles('**/*.go', 'web/src/**') }}
+          key: buildkit-go-build-${{ matrix.arch }}-${{ hashFiles('go.sum') }}-${{ hashFiles('**/*.go') }}
           restore-keys: |
-            buildkit-mounts-${{ matrix.arch }}-${{ hashFiles('go.sum', 'web/pnpm-lock.yaml') }}-
-            buildkit-mounts-${{ matrix.arch }}-
-      - name: Inject BuildKit mounts
+            buildkit-go-build-${{ matrix.arch }}-${{ hashFiles('go.sum') }}-
+            buildkit-go-build-${{ matrix.arch }}-
+      - name: Inject the Go build mount
         uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723 # v3.4.0
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          # The mounts are discovered from the Dockerfile, so new cache mounts are persisted too.
-          dockerfile: Dockerfile
-          cache-dir: buildkit-mounts
-          skip-extraction: ${{ steps.mount-cache.outputs.cache-hit }}
+          cache-map: |
+            {"buildkit-mounts/go-build": "/root/.cache/go-build"}
+          skip-extraction: true
       - name: Build image for the native runner
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -237,8 +237,8 @@ jobs:
             VERSION=${{ env.BUILD_VERSION }}
             REVISION=${{ github.sha }}
             SOURCE_URL=${{ github.server_url }}/${{ github.repository }}
+          # Layers come from the main-branch warmer; exporting them here would only fill this ref's scope.
           cache-from: type=gha,scope=container-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=container-${{ matrix.arch }}
           # The tested image is transported through docker save/load before publication.
           provenance: false
       - name: Test runtime, persistence and maintenance commands
