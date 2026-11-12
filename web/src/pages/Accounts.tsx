@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Check,
+  Fingerprint,
   LoaderCircle,
   MoreHorizontal,
   Plus,
@@ -18,6 +19,7 @@ import {
   accountErrorKey,
   accountOptions,
   checkAccount,
+  fingerprintProviders,
   setAccountEnabled,
   type Account,
   providerLabels,
@@ -30,6 +32,7 @@ import { DeleteAccount } from '@/components/DeleteAccount'
 import { Status } from '@/components/Status'
 import { AccountLimits } from '@/components/AccountLimits'
 import { AccountProxy } from '@/components/AccountProxy'
+import { AccountFingerprint } from '@/components/AccountFingerprint'
 import { reasonKeys, runtimeOptions } from '@/lib/runtime'
 import { proxyOptions } from '@/lib/proxies'
 import { ProviderLogo } from '@/components/ProviderLogo'
@@ -57,6 +60,9 @@ export function Accounts() {
   const [clock, setClock] = useState(() => Date.now())
   const [limits, setLimits] = useState<Account | null>(null)
   const [proxyAccount, setProxyAccount] = useState<Account | null>(null)
+  const [fingerprintAccount, setFingerprintAccount] = useState<Account | null>(
+    null,
+  )
   const [connecting, setConnecting] = useState<Account | 'new' | null>(null)
   const [removing, setRemoving] = useState<Account | null>(null)
   const [verified, setVerified] = useState<{
@@ -273,6 +279,14 @@ export function Accounts() {
                           <Route aria-hidden="true" />
                           {t('accountProxy')}
                         </DropdownMenuItem>
+                        {fingerprintProviders.has(account.provider) && (
+                          <DropdownMenuItem
+                            onSelect={() => setFingerprintAccount(account)}
+                          >
+                            <Fingerprint aria-hidden="true" />
+                            {t('accountFingerprint')}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onSelect={() => setLimits(account)}>
                           <SlidersHorizontal aria-hidden="true" />
                           {t('accountScheduling')}
@@ -486,6 +500,13 @@ export function Accounts() {
           account={proxyAccount}
           onClose={() => setProxyAccount(null)}
           onChanged={invalidate}
+          restoreFocus={restoreFocus}
+        />
+      )}
+      {fingerprintAccount && (
+        <AccountFingerprint
+          account={fingerprintAccount}
+          onClose={() => setFingerprintAccount(null)}
           restoreFocus={restoreFocus}
         />
       )}

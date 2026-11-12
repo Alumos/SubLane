@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/murongg/SubLane/internal/accounts"
 )
 
 func TestCodexAgentPresentsAccountPlatform(t *testing.T) {
@@ -63,5 +65,18 @@ func TestConnectFailuresRetryOnlyBeforeRequestBytes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestClaudeProfileOverridesOnlySetHeaders(t *testing.T) {
+	request, _ := http.NewRequest(http.MethodPost, "https://api.anthropic.com/v1/messages", nil)
+	request.Header.Set("X-Stainless-Os", "MacOS")
+	request.Header.Set("X-Stainless-Runtime-Version", "v26.3.0")
+	got := applyClaudeProfile(request, accounts.ClientProfile{OS: "Windows", Arch: "x64"})
+	if got.Header.Get("X-Stainless-Os") != "Windows" || got.Header.Get("X-Stainless-Arch") != "x64" || got.Header.Get("X-Stainless-Runtime-Version") != "v26.3.0" {
+		t.Fatal("account profile not applied", got.Header)
+	}
+	if request.Header.Get("X-Stainless-Os") != "MacOS" {
+		t.Fatal("SDK request was mutated")
 	}
 }

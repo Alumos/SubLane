@@ -405,7 +405,7 @@ func upstreamHeaders(request *http.Request, credential accounts.Credential, clie
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+credential.AccessToken)
 	request.Header.Set("Chatgpt-Account-Id", credential.AccountID)
-	applyCodexVersion(request.Header, version, credential.ClientPlatform)
+	applyCodexVersion(request.Header, version, credential.Profile.Platform)
 	request.Header.Set("Accept", "application/json")
 	if stream {
 		request.Header.Set("Accept", "text/event-stream")

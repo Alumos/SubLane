@@ -73,9 +73,7 @@ func (s *Service) prepare(ctx context.Context, id, rejectedToken string, refresh
 			return Credential{}, err
 		}
 	}
-	if row.ClientPlatform != nil {
-		credential.ClientPlatform = *row.ClientPlatform
-	}
+	credential.Profile = decodeProfile(row.ClientProfile)
 	if row.ProxyID != nil {
 		credential.ProxyURL, err = s.proxyURL(ctx, *row.ProxyID)
 		if err != nil {
@@ -145,7 +143,7 @@ func (s *Service) prepare(ctx context.Context, id, rejectedToken string, refresh
 		return Credential{}, err
 	}
 	delete(s.refreshes, id)
-	updated.ProxyURL, updated.ClientPlatform = credential.ProxyURL, credential.ClientPlatform
+	updated.ProxyURL, updated.Profile = credential.ProxyURL, credential.Profile
 	return updated, nil
 }
 
