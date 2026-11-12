@@ -4,12 +4,36 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
+
+	"github.com/murongg/SubLane/internal/accounts"
+	"github.com/murongg/SubLane/internal/allocations"
 )
 
-// Quota failover lets a resource group move an existing Responses conversation off a
-// quota-exhausted account. Encrypted reasoning and compaction state belongs to the account that
+// Quota failover lets a resource group move an existing Responses conversation off an account that
+// can no longer serve it (see failoverCause). Encrypted reasoning and compaction state belongs to the account that
 // produced it, so the binding remembers fingerprints of every encrypted item present when it moved
 // and those items are withheld from the new account on this and later turns.
+
+// failoverCooldownSeconds separates short rate limits, which a conversation waits out on its own
+// account, from long ones such as an exhausted usage window.
+const failoverCooldownSeconds = 300
+
+// failoverCause reports whether an account rejection is lasting enough to move a conversation:
+// exhausted quota or allowance, a long cooldown, or an account that is disabled, needs
+// reauthorization, was deleted or left the pool. Saturation and short cooldowns never move it.
+func failoverCause(err error) bool {
+	var quota *QuotaError
+	var cooling *CoolingError
+	switch {
+	case errors.As(err, &quota):
+		return true
+	case errors.As(err, &cooling):
+		return cooling.RetryAfter >= failoverCooldownSeconds
+	}
+	return errors.Is(err, accounts.ErrDisabled) || errors.Is(err, accounts.ErrReauthorize) || errors.Is(err, accounts.ErrNotFound) ||
+		errors.Is(err, ErrAffinityUnavailable) || errors.Is(err, allocations.ErrQuota)
+}
 
 const (
 	stateDigestSize = 16

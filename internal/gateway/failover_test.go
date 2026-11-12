@@ -134,3 +134,81 @@ func TestQuotaFailoverRefusesServerHeldState(t *testing.T) {
 		t.Fatal("stored provider state moved accounts", err)
 	}
 }
+
+func TestFailoverMovesOffLastingUnavailability(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		break_ func(t *testing.T, s *Service, id string)
+	}{
+		{"long cooldown", func(t *testing.T, s *Service, id string) {
+			s.health[id].CooldownUntil = s.now().Add(time.Hour).Unix()
+		}},
+		{"disabled", func(t *testing.T, s *Service, id string) {
+			if _, err := s.accounts.SetEnabled(context.Background(), id, false); err != nil {
+				t.Fatal(err)
+			}
+		}},
+		{"removed from pool", func(t *testing.T, s *Service, id string) {
+			if _, err := s.db.Exec("DELETE FROM group_accounts WHERE account_id=?", id); err != nil {
+				t.Fatal(err)
+			}
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s, first, other, _ := failoverGateway(t, true)
+			test.break_(t, s, first)
+			if err := openTurn(t, s, strings.Join([]string{failoverUser, failoverOld, failoverReply, failoverFollowUp}, ",")); err != nil || boundAccount(t, s) != other {
+				t.Fatal("conversation stayed on an unusable account", err)
+			}
+		})
+	}
+}
+
+func TestFailoverWaitsOutShortCooldown(t *testing.T) {
+	s, first, _, _ := failoverGateway(t, true)
+	s.health[first].CooldownUntil = s.now().Add(time.Minute).Unix()
+	err := openTurn(t, s, failoverFollowUp)
+	var cooling *CoolingError
+	if !errors.As(err, &cooling) || boundAccount(t, s) != first {
+		t.Fatal("short cooldown moved the conversation", err)
+	}
+}
+
+func TestCodexClientPlatformIsPinnedPerAccount(t *testing.T) {
+	var agents []string
+	var mu sync.Mutex
+	s, _ := codexGateway(t, transportFunc(func(r *http.Request) (*http.Response, error) {
+		if strings.HasSuffix(r.URL.Path, "/responses") {
+			mu.Lock()
+			agents = append(agents, r.Header.Get("User-Agent"))
+			mu.Unlock()
+		}
+		return syntheticStream(), nil
+	}))
+	for _, agent := range []string{"codex_cli_rs/0.46.0 (Mac OS 15.5.0; arm64) iTerm.app/3.6.1", "codex_cli_rs/0.50.0 (Windows 10.0.26100; x86_64) WindowsTerminal", "SyntheticChatClient/1.0"} {
+		response, err := s.Open(context.Background(), 1, 1, []byte(`{"model":"synthetic-model","input":"synthetic"}`), http.Header{"User-Agent": {agent}}, Responses)
+		if err != nil {
+			t.Fatal(err)
+		}
+		io.Copy(io.Discard, response.Body)
+		response.Body.Close()
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(agents) != 3 {
+		t.Fatal("unexpected upstream requests", agents)
+	}
+	for _, agent := range agents {
+		if !strings.HasSuffix(agent, " (Mac OS 15.5.0; arm64) iTerm.app/3.6.1") || !strings.HasPrefix(agent, "codex_cli_rs/") {
+			t.Fatal("clients on one account presented different fingerprints", agents)
+		}
+	}
+}
+
+// strictBinding turns failover off for a group whose test asserts the strict no-move rule.
+func strictBinding(t *testing.T, s *Service, groupID int64) {
+	t.Helper()
+	if _, err := s.db.Exec("UPDATE account_groups SET quota_failover=0 WHERE id=?", groupID); err != nil {
+		t.Fatal(err)
+	}
+}

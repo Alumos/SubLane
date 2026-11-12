@@ -108,7 +108,7 @@ func (c *Client) executionTransport(credential accounts.Credential, headers http
 	if credential.Kind() == "openai" {
 		base = &channelTransport{base: base, credential: credential, session: channelSession(headers, body)}
 	}
-	return &engineTransport{base: base, codexVersion: c.codexVersion(), grokVersion: c.currentGrokVersion(), provider: credential.Kind()}
+	return &engineTransport{base: base, codexVersion: c.codexVersion(), codexPlatform: credential.ClientPlatform, grokVersion: c.currentGrokVersion(), provider: credential.Kind()}
 }
 
 // The pinned SDK's compatible executor always generates Chat Completions.

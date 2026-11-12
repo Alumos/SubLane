@@ -1932,10 +1932,10 @@ export const en = {
   sessionStickyHint:
     'Keeps conversations without a session ID on one resource, using a hash of the opening prompt, and lets subagents prefer their parent’s resource. Unavailable resources still fail over. Improves upstream prompt cache hits.',
   sessionStickyEnabled: 'Session stickiness on',
-  quotaFailover: 'Switch accounts when quota runs out',
+  quotaFailover: 'Switch accounts when one becomes unavailable',
   quotaFailoverHint:
-    'Lets an existing conversation move to another subscription of the same provider when its account’s quota is exhausted, instead of failing. Encrypted reasoning from the previous account is withheld; the visible transcript is kept. Conversations using server-stored state never move.',
-  quotaFailoverEnabled: 'Quota failover on',
+    'When a conversation’s account runs out of quota, is rate-limited for five minutes or more, is disabled, needs reauthorization or leaves the group, the conversation continues on another account of the same provider instead of failing. Encrypted reasoning from the previous account is withheld; the visible transcript is kept. Conversations using server-stored state never move.',
+  quotaFailoverEnabled: 'Account failover on',
   editChannel: 'Edit channel',
   channelKeyKeepHint:
     'Leave blank to keep the stored key. The stored key is never shown.',

@@ -34,3 +34,8 @@ DELETE FROM accounts WHERE id = sqlc.arg(id) AND tenant_id = sqlc.arg(tenant_id)
 
 -- name: RenameAccount :exec
 UPDATE accounts SET name = sqlc.arg(name), updated_at = sqlc.arg(updated_at) WHERE id = sqlc.arg(id) AND tenant_id = sqlc.arg(tenant_id);
+
+-- name: LearnClientPlatform :execrows
+-- First observation wins; a pinned platform never changes with later clients.
+UPDATE accounts SET client_platform = sqlc.arg(client_platform)
+WHERE id = sqlc.arg(id) AND tenant_id = sqlc.arg(tenant_id) AND client_platform IS NULL;

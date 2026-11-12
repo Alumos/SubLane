@@ -155,6 +155,7 @@ func TestReviewKeepsAnExistingChildBinding(t *testing.T) {
 	if _, err := s.accounts.SetEnabled(context.Background(), other, false); err != nil {
 		t.Fatal(err)
 	}
+	strictBinding(t, s, 1)
 	x, err := s.Open(context.Background(), 1, 1, []byte(`{"model":"codex-auto-review","input":"Synthetic operation"}`), reviewHeaders("synthetic-review"), Responses)
 	if x != nil {
 		x.Body.Close()
