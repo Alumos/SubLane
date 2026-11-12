@@ -46,6 +46,8 @@ jobs:
           mkdir -p web/dist && touch web/dist/.keep
           go build ./...
           go vet ./...
+          # make build compiles with production tags and -trimpath, which are separate cache entries.
+          CGO_ENABLED=0 go build -tags production -trimpath -o /dev/null ./cmd/sublane
       - name: Save Go build cache
         if: steps.build-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
