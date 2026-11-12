@@ -73,7 +73,10 @@ func (s *Service) prepare(ctx context.Context, id, rejectedToken string, refresh
 			return Credential{}, err
 		}
 	}
-	credential.Profile, credential.Identity = decodeProfile(row.ClientProfile), identityOf(row)
+	credential.Profile = decodeProfile(row.ClientProfile)
+	if credential.Identity, err = s.ensureSeed(ctx, row, identityOf(row)); err != nil {
+		return Credential{}, err
+	}
 	if row.ProxyID != nil {
 		credential.ProxyURL, err = s.proxyURL(ctx, *row.ProxyID)
 		if err != nil {

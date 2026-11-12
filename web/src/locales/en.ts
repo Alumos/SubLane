@@ -948,7 +948,7 @@ export const en = {
   fingerprintConvergence: 'Identifier convergence',
   fingerprintModeOff: 'Off',
   fingerprintModeDevice: 'Device',
-  fingerprintModeSession: 'Session',
+  fingerprintModeSession: 'Session (default)',
   fingerprintModeFull: 'Full',
   fingerprintModeOffHint:
     'Each client keeps its own installation, session and thread identifiers (SubLane still isolates sessions per member).',
@@ -959,7 +959,7 @@ export const en = {
   fingerprintModeFullHint:
     'One device, one session and one thread for every client. The most aggressive mode.',
   fingerprintConvergenceWarning:
-    'Off by default for a reason: when sub2api enabled convergence by default, users reported shrinking quotas. Turn it on for one account first and watch its quota.',
+    'Convergence is on by default (session mode). sub2api users reported shrinking quotas with convergence; a likely cause is one prompt cache key for every conversation, so session mode keeps one cache key per real conversation and only full mode collapses it. If an account’s quota drains unusually fast, switch it to device or off.',
   fingerprintTLS: 'Claude Code TLS fingerprint',
   fingerprintTLSHint:
     'Connections present the TLS handshake of Claude Code on Node.js 24 (JA3 44f88fca…) instead of Go’s, over HTTP/1.1 like the real client.',

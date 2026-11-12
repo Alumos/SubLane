@@ -84,7 +84,8 @@ func TestCodexIdentityConvergesEveryCarrier(t *testing.T) {
 			if metadata["session_id"] != session || metadata["thread_id"] != thread || metadata["window_id"] != thread+":0" || metadata["turn_id"] == "" {
 				t.Fatal("turn metadata not converged", metadata)
 			}
-			if !strings.Contains(body, `"prompt_cache_key":"`+session+`"`) || !strings.Contains(body, `"thread_id":"`+thread+`"`) {
+			// Each real conversation keeps its own cache key (its thread); only full mode collapses it.
+			if !strings.Contains(body, `"prompt_cache_key":"`+thread+`"`) || !strings.Contains(body, `"thread_id":"`+thread+`"`) {
 				t.Fatal("body session identifiers not converged", body)
 			}
 		})
@@ -153,7 +154,9 @@ func captureHello(t *testing.T) (string, <-chan *tls.ClientHelloInfo) {
 	}}
 	server.StartTLS()
 	t.Cleanup(server.Close)
-	return server.Listener.Addr().String(), hellos
+	// TLS never sends SNI for an IP address, so dial by name as a real client does.
+	_, port, _ := net.SplitHostPort(server.Listener.Addr().String())
+	return net.JoinHostPort("localhost", port), hellos
 }
 
 func TestClaudeTLSFingerprintMatchesClaudeCode(t *testing.T) {

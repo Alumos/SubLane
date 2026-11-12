@@ -192,10 +192,26 @@ func identityOf(row db.Account) ClientIdentity {
 	if row.FingerprintSeed != nil {
 		identity.Seed = *row.FingerprintSeed
 	}
-	if !convergenceModes[identity.Mode] {
+	// Convergence only exists for Codex identifiers; other providers always report off.
+	if !convergenceModes[identity.Mode] || row.Provider != "codex" {
 		identity.Mode = "off"
 	}
 	return identity
+}
+
+// ensureSeed gives a converging Codex account its seed on first use, so every creation path
+// (authorization, import, restore) converges without a separate setup step.
+func (s *Service) ensureSeed(ctx context.Context, row db.Account, identity ClientIdentity) (ClientIdentity, error) {
+	if row.Provider != "codex" || identity.Mode == "off" || identity.Seed != "" {
+		return identity, nil
+	}
+	seed, err := newSeed()
+	if err != nil {
+		return identity, err
+	}
+	identity.Seed = seed
+	_, err = s.queries.SetClientIdentity(ctx, db.SetClientIdentityParams{ID: row.ID, TenantID: s.tenantID, FingerprintMode: row.FingerprintMode, FingerprintSeed: &seed, TlsFingerprint: row.TlsFingerprint, UpdatedAt: row.UpdatedAt})
+	return identity, err
 }
 
 func newSeed() (string, error) {

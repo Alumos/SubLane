@@ -867,7 +867,7 @@ export const zh: Record<keyof typeof en, string> = {
   fingerprintConvergence: '标识收敛',
   fingerprintModeOff: '关闭',
   fingerprintModeDevice: '设备',
-  fingerprintModeSession: '会话',
+  fingerprintModeSession: '会话（默认）',
   fingerprintModeFull: '完全',
   fingerprintModeOffHint:
     '每个客户端保留自己的安装 ID、会话 ID 和线程 ID（SubLane 仍按成员隔离会话）。',
@@ -878,7 +878,7 @@ export const zh: Record<keyof typeof en, string> = {
   fingerprintModeFullHint:
     '所有客户端共用一台设备、一个会话、一个线程，最激进的模式。',
   fingerprintConvergenceWarning:
-    '默认关闭是有原因的：sub2api 曾把收敛设为默认开启，随后有用户报告额度缩水。建议先在一个账号上开启并观察额度。',
+    '收敛默认开启（会话模式）。sub2api 用户曾报告开启收敛后额度缩水，可能原因是所有对话共用一个提示词缓存键；因此会话模式为每个真实对话保留独立的缓存键，只有完全模式才会合并。如果某个账号额度消耗异常快，可改为“设备”或“关闭”。',
   fingerprintTLS: 'Claude Code TLS 指纹',
   fingerprintTLSHint:
     '连接时使用 Node.js 24 上的 Claude Code 的 TLS 握手（JA3 44f88fca…），而不是 Go 的握手，并像真实客户端一样走 HTTP/1.1。',
