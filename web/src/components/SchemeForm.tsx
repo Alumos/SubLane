@@ -244,6 +244,11 @@ function SchemeFields({
   const [invalid, setInvalid] = useState(false)
   const shareMode = mode === 'ratio'
   const durationMode = period === 'durations'
+  // Only rules that charge internal USD keep a price snapshot.
+  const pricedMode =
+    mode === 'amount' ||
+    mode === 'windows' ||
+    (shareMode && ratioUnit === 'amount')
   const longestDraftWindow = Math.max(
     0,
     ...windowRules.map((rule) => durationSeconds(rule) ?? 0),
@@ -442,7 +447,7 @@ function SchemeFields({
             }
           : {}),
         ...(durationMode ? { windows: parsedWindows } : {}),
-        auto_prices: autoPrices,
+        ...(pricedMode ? { auto_prices: autoPrices } : {}),
       },
     })
   }
@@ -575,9 +580,7 @@ function SchemeFields({
               </div>
             </fieldset>
           )}
-          {(mode === 'amount' ||
-            mode === 'windows' ||
-            (shareMode && ratioUnit === 'amount')) && (
+          {pricedMode && (
             <label className="flex items-start gap-3 text-sm">
               <input
                 type="checkbox"
@@ -860,9 +863,7 @@ function SchemeFields({
               </p>
             )}
           </div>
-          {(mode === 'amount' ||
-            mode === 'windows' ||
-            (shareMode && ratioUnit === 'amount')) && (
+          {pricedMode && (
             <p className="text-sm leading-6 text-muted-foreground">
               {t('allocationAutoPricingHint')}
             </p>
