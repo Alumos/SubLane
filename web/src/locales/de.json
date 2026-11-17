@@ -343,6 +343,8 @@
   "allocationMineEmpty": "Keine Nutzungskontingente zugewiesen.",
   "allocationKeyChoice": "Nutzungskontingent: {{scheme}} · {{pool}}",
   "auditAllocationSave": "Nutzungskontingent gespeichert",
+  "auditAllocationPrices": "Preise neuer Modelle ergänzt",
+  "allocationAutoPrices": "Preise neu im Preiskatalog gelisteter Modelle automatisch ergänzen (sofort wirksam)",
   "auditAllocationSettle": "Kontingentnutzung abgerechnet",
   "auditAllocationReconcile": "Bestätigte externe Quotennutzung",
   "auditAllocationDelete": "Nutzungskontingent gelöscht",

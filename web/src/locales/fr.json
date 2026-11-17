@@ -343,6 +343,8 @@
   "allocationMineEmpty": "Aucune allocation d’usage ne vous est attribuée.",
   "allocationKeyChoice": "Allocation d’usage : {{scheme}} · {{pool}}",
   "auditAllocationSave": "Allocation d’usage enregistrée",
+  "auditAllocationPrices": "Prix des nouveaux modèles ajoutés",
+  "allocationAutoPrices": "Ajouter automatiquement le prix des nouveaux modèles du catalogue (effet immédiat)",
   "auditAllocationSettle": "Usage de l’allocation comptabilisé",
   "auditAllocationReconcile": "Utilisation confirmée des quotas extérieurs",
   "auditAllocationDelete": "Allocation d’usage supprimée",

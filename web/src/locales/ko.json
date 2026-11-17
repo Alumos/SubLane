@@ -343,6 +343,8 @@
   "allocationMineEmpty": "할당된 사용량이 없습니다.",
   "allocationKeyChoice": "사용량 할당: {{scheme}} · {{pool}}",
   "auditAllocationSave": "사용량 할당을 저장했습니다",
+  "auditAllocationPrices": "새 모델 가격 자동 추가",
+  "allocationAutoPrices": "가격 카탈로그에 새로 추가된 모델의 가격을 자동으로 채우기(즉시 적용)",
   "auditAllocationSettle": "할당 사용량을 정산했습니다",
   "auditAllocationReconcile": "외부 할당량 사용",
   "auditAllocationDelete": "사용량 할당을 삭제했습니다",

@@ -343,6 +343,8 @@
   "allocationMineEmpty": "尚未指派任何用量分配。",
   "allocationKeyChoice": "用量分配：{{scheme}} · {{pool}}",
   "auditAllocationSave": "已儲存用量分配",
+  "auditAllocationPrices": "自動補齊了模型價格",
+  "allocationAutoPrices": "自動為價格目錄中新出現的模型補齊價格（立即生效）",
   "auditAllocationSettle": "已結算用量分配",
   "auditAllocationReconcile": "確認外部額度消耗",
   "auditAllocationDelete": "已刪除用量分配",

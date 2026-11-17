@@ -193,6 +193,7 @@ function SchemeFields({
   const [resetTime, setResetTime] = useState(initial?.reset_time ?? '00:00')
   const [resetDay, setResetDay] = useState(String(initial?.reset_day ?? 1))
   const [enabled, setEnabled] = useState(scheme?.enabled ?? true)
+  const [autoPrices, setAutoPrices] = useState(initial?.auto_prices ?? true)
   const [ratioTotal, setRatioTotal] = useState(
     initial?.total
       ? allocationValue(initial.total, initial.ratio_unit ?? 'tokens')
@@ -441,6 +442,7 @@ function SchemeFields({
             }
           : {}),
         ...(durationMode ? { windows: parsedWindows } : {}),
+        auto_prices: autoPrices,
       },
     })
   }
@@ -572,6 +574,19 @@ function SchemeFields({
                 ))}
               </div>
             </fieldset>
+          )}
+          {(mode === 'amount' ||
+            mode === 'windows' ||
+            (shareMode && ratioUnit === 'amount')) && (
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={autoPrices}
+                onChange={(event) => setAutoPrices(event.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-primary"
+              />
+              <span>{t('allocationAutoPrices')}</span>
+            </label>
           )}
           <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
             {shareMode && !durationMode && (

@@ -889,6 +889,101 @@ func TestNewlyPricedModelStillNeedsARevision(t *testing.T) {
 	if err != nil || updated.Next == nil || len(updated.Next.PriceCoverage.UncoveredModels) != 0 {
 		t.Fatal("new revision should cover newly priced model", updated.Next, err)
 	}
+	// Saving also prices the newly listed model in the active revision, without waiting for Next.
+	if _, err := rateFor(updated.Revision, "synthetic-new"); err != nil || len(updated.PriceCoverage.UncoveredModels) != 0 {
+		t.Fatal("active revision still rejects the newly priced model", updated.Config.Rates, err)
+	}
+}
+
+func TestBackfillPricesNewModelsImmediatelyOnTheSameAnchor(t *testing.T) {
+	_, conn, user, account := fixture(t)
+	ctx := context.Background()
+	if _, err := conn.Exec(`UPDATE accounts SET models_snapshot = ? WHERE id = ?`,
+		`{"models":["synthetic-priced","synthetic-new"],"updated_at":1,"source":"synthetic"}`, account); err != nil {
+		t.Fatal(err)
+	}
+	original := pricing.Price{Input: 1_000_000, Output: 2_000_000}
+	manager := NewWithPricing(conn, pricing.NewStatic(map[string]pricing.Price{"synthetic-priced": original}))
+	scheme, err := manager.SaveScheme(ctx, 0, SchemeInput{Name: "Synthetic backfill", GroupID: 2, Enabled: true, Config: Config{
+		Mode: "amount", Period: "day", Members: []Share{{UserID: user, Limit: 1_000_000}},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The catalog changes the existing price and lists the new model; only the new model is added.
+	manager.pricing = pricing.NewStatic(map[string]pricing.Price{
+		"synthetic-priced": {Input: 9_000_000, Output: 9_000_000},
+		"synthetic-new":    {Input: 3_000_000, Output: 4_000_000},
+	})
+	added, err := manager.BackfillPrices(ctx, scheme.ID)
+	if err != nil || added != 1 {
+		t.Fatal("new model not backfilled", added, err)
+	}
+	listed, err := manager.Schemes(ctx)
+	if err != nil || len(listed) != 1 {
+		t.Fatal(listed, err)
+	}
+	current := listed[0]
+	if current.AccountingAnchorAt != scheme.AccountingAnchorAt || current.Revision.ID == scheme.Revision.ID {
+		t.Fatal("backfill did not continue the same accounting period", current.Revision, scheme.Revision)
+	}
+	priced, err := rateFor(current.Revision, "synthetic-priced")
+	if err != nil || priced.Input != original.Input {
+		t.Fatal("backfill changed an existing saved price", priced, err)
+	}
+	if rate, err := rateFor(current.Revision, "synthetic-new"); err != nil || rate.Input != 3_000_000 {
+		t.Fatal("new model not priced", rate, err)
+	}
+	if again, err := manager.BackfillPrices(ctx, scheme.ID); err != nil || again != 0 {
+		t.Fatal("backfill is not idempotent", again, err)
+	}
+}
+
+func TestBackfillPricesRespectsDisabledAutoPrices(t *testing.T) {
+	_, conn, user, account := fixture(t)
+	ctx := context.Background()
+	if _, err := conn.Exec(`UPDATE accounts SET models_snapshot = ? WHERE id = ?`,
+		`{"models":["synthetic-priced","synthetic-new"],"updated_at":1,"source":"synthetic"}`, account); err != nil {
+		t.Fatal(err)
+	}
+	manager := NewWithPricing(conn, pricing.NewStatic(map[string]pricing.Price{"synthetic-priced": {Input: 1_000_000, Output: 2_000_000}}))
+	off := false
+	scheme, err := manager.SaveScheme(ctx, 0, SchemeInput{Name: "Synthetic manual prices", GroupID: 2, Enabled: true, Config: Config{
+		Mode: "amount", Period: "day", Members: []Share{{UserID: user, Limit: 1_000_000}}, AutoPrices: &off,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	manager.pricing = pricing.NewStatic(map[string]pricing.Price{
+		"synthetic-priced": {Input: 1_000_000, Output: 2_000_000},
+		"synthetic-new":    {Input: 3_000_000, Output: 4_000_000},
+	})
+	if added, err := manager.BackfillPrices(ctx, scheme.ID); err != nil || added != 0 {
+		t.Fatal("disabled automatic prices still backfilled", added, err)
+	}
+}
+
+func TestSchemePricesModelFromItsVariantFamily(t *testing.T) {
+	_, conn, user, account := fixture(t)
+	ctx := context.Background()
+	if _, err := conn.Exec(`UPDATE accounts SET models_snapshot = ? WHERE id = ?`,
+		`{"models":["synthetic-image-2.5"],"updated_at":1,"source":"synthetic"}`, account); err != nil {
+		t.Fatal(err)
+	}
+	variant := pricing.Price{Input: 5_000_000, Cached: 1_250_000, Output: 30_000_000, ImageInput: 8_000_000}
+	manager := NewWithPricing(conn, pricing.NewStatic(map[string]pricing.Price{
+		"synthetic-image-2.5-flare":    variant,
+		"synthetic-image-2.5-sunburst": variant,
+	}))
+	scheme, err := manager.SaveScheme(ctx, 0, SchemeInput{Name: "Synthetic image family", GroupID: 2, Enabled: true, Config: Config{
+		Mode: "amount", Period: "day", Members: []Share{{UserID: user, Limit: 1_000_000}},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rate, err := rateFor(scheme.Revision, "synthetic-image-2.5"); err != nil || rate.ImageInput != variant.ImageInput || rate.Output != variant.Output {
+		t.Fatal("model was not priced from its variants", scheme.Config.Rates, err)
+	}
 }
 
 func TestMissingCatalogPricePrefersScheduledRateOverCurrentRate(t *testing.T) {

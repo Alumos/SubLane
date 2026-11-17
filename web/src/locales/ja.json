@@ -343,6 +343,8 @@
   "allocationMineEmpty": "利用枠が割り当てられていません。",
   "allocationKeyChoice": "利用枠：{{scheme}} · {{pool}}",
   "auditAllocationSave": "利用枠を保存しました",
+  "auditAllocationPrices": "新しいモデルの価格を自動追加",
+  "allocationAutoPrices": "価格カタログに新しく載ったモデルの価格を自動で追加する（即時反映）",
   "auditAllocationSettle": "利用枠の使用量を精算しました",
   "auditAllocationReconcile": "確認された外部クォータの使用量",
   "auditAllocationDelete": "利用枠を削除しました",

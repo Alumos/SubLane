@@ -343,6 +343,8 @@
   "allocationMineEmpty": "No tienes asignaciones de uso.",
   "allocationKeyChoice": "Asignación de uso: {{scheme}} · {{pool}}",
   "auditAllocationSave": "Asignación de uso guardada",
+  "auditAllocationPrices": "Precios de modelos nuevos añadidos",
+  "allocationAutoPrices": "Añadir automáticamente el precio de los modelos nuevos del catálogo (efecto inmediato)",
   "auditAllocationSettle": "Uso de la asignación contabilizado",
   "auditAllocationReconcile": "Uso de cuota externa confirmado",
   "auditAllocationDelete": "Asignación de uso eliminada",

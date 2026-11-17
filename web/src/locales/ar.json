@@ -343,6 +343,8 @@
   "allocationMineEmpty": "لم تُخصّص لك أي مخصصات استخدام.",
   "allocationKeyChoice": "مخصص الاستخدام: {{scheme}} · {{pool}}",
   "auditAllocationSave": "تم حفظ مخصص الاستخدام",
+  "auditAllocationPrices": "أُضيفت أسعار نماذج جديدة",
+  "allocationAutoPrices": "إضافة أسعار النماذج الجديدة في كتالوج الأسعار تلقائيًا (فوريًا)",
   "auditAllocationSettle": "تمت تسوية استخدام المخصص",
   "auditAllocationReconcile": "استخدام الحصص الخارجية المؤكدة",
   "auditAllocationDelete": "تم حذف مخصص الاستخدام",

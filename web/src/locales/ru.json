@@ -343,6 +343,8 @@
   "allocationMineEmpty": "Вам не назначены лимиты использования.",
   "allocationKeyChoice": "Лимит использования: {{scheme}} · {{pool}}",
   "auditAllocationSave": "Лимит использования сохранён",
+  "auditAllocationPrices": "Добавлены цены новых моделей",
+  "allocationAutoPrices": "Автоматически добавлять цены новых моделей из каталога (сразу)",
   "auditAllocationSettle": "Использование лимита учтено",
   "auditAllocationReconcile": "Подтвержденное использование внешних квот",
   "auditAllocationDelete": "Лимит использования удалён",
