@@ -975,6 +975,7 @@ it('offers an internal USD basis below the share choice', async () => {
         reset_time: '00:00',
         members: [{ user_id: 7, limit: 2500 }],
         rates: [],
+        auto_prices: true,
       },
     }),
   )
@@ -1069,6 +1070,7 @@ it('splits amount shares exactly while editing', async () => {
           { user_id: 4, limit: 3333 },
         ],
         rates: [],
+        auto_prices: true,
       },
     }),
   )

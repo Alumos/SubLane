@@ -529,6 +529,8 @@ export const zh: Record<keyof typeof en, string> = {
   allocationMineEmpty: '目前没有分配给你的资源组额度。',
   allocationKeyChoice: '用量分配：{{scheme}} · {{pool}}',
   auditAllocationSave: '保存用量分配',
+  auditAllocationPrices: '自动补全了模型价格',
+  allocationAutoPrices: '自动为价格目录中新出现的模型补全价格（立即生效）',
   auditAllocationSettle: '结算用量分配记录',
   auditAllocationReconcile: '确认外部额度消耗',
   auditAllocationDelete: '删除用量分配',

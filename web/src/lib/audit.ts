@@ -6,6 +6,7 @@ import { authKey, type AuthState } from './auth'
 import { cachePage, paginationFields } from './pagination'
 export const auditActions: Record<string, keyof typeof en> = {
   'allocation.save': 'auditAllocationSave',
+  'allocation.prices': 'auditAllocationPrices',
   'allocation.settle': 'auditAllocationSettle',
   'allocation.delete': 'auditAllocationDelete',
   'allocation.reconcile': 'auditAllocationReconcile',

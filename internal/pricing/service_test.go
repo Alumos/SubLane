@@ -221,3 +221,28 @@ func TestImageGenerationPricesUseImageOutputTokens(t *testing.T) {
 		t.Fatalf("image token prices were applied outside image generation models: %+v", other)
 	}
 }
+
+func TestLookupMatchesUndatedAndUnambiguousFamilies(t *testing.T) {
+	image := Price{Input: 5_000_000, Cached: 1_250_000, Output: 30_000_000, ImageInput: 8_000_000, Source: "remote"}
+	catalog := NewStatic(map[string]Price{
+		"gpt-image-2.5-flare":    image,
+		"gpt-image-2.5-sunburst": image,
+		"gpt-image-2.6-flare":    image,
+		"synthetic-mini":         {Input: 1, Cached: 1, Output: 1},
+		"synthetic-pro":          {Input: 9, Cached: 9, Output: 9},
+	})
+	price, ok := catalog.Lookup("gpt-image-2.5")
+	if !ok || price.Source != "family" || price.ImageInput != image.ImageInput || price.Output != image.Output {
+		t.Fatal("bare model not priced from identical variants", price, ok)
+	}
+	if price, ok := catalog.Lookup("codex/gpt-image-2.6-flare-2026-10-01"); !ok || price.Output != image.Output {
+		t.Fatal("dated snapshot not priced from its release", price, ok)
+	}
+	// Variants with different prices are ambiguous and never price the family name.
+	if price, ok := catalog.Lookup("synthetic"); ok {
+		t.Fatal("ambiguous family priced", price)
+	}
+	if _, ok := catalog.Lookup("gpt-image-3"); ok {
+		t.Fatal("unrelated model priced")
+	}
+}

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -174,16 +175,48 @@ func (s *Service) Close() {
 	}
 }
 
+// datedSnapshot matches a pinned release suffix such as -2026-09-08.
+var datedSnapshot = regexp.MustCompile(`-[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
+
+// Lookup finds a model's price. Catalogs often list only variants or dated snapshots of a model
+// (gpt-image-2.5-flare and gpt-image-2.5-sunburst but no gpt-image-2.5), so after exact names it
+// accepts the undated release and finally a model family whose variants all share one price.
+// Families with differing prices never match, so a variant can never be priced as another.
 func (s *Service) Lookup(model string) (Price, bool) {
-	model = normalizeModel(model)
+	model = strings.ToLower(normalizeModel(model))
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, candidate := range []string{model, strings.TrimSuffix(model, "-high"), strings.TrimSuffix(model, "-xhigh")} {
-		if price, ok := s.prices[strings.ToLower(candidate)]; ok {
+	for _, candidate := range []string{model, strings.TrimSuffix(model, "-high"), strings.TrimSuffix(model, "-xhigh"), datedSnapshot.ReplaceAllString(model, "")} {
+		if price, ok := s.prices[candidate]; ok {
 			return price, true
 		}
 	}
-	return Price{}, false
+	return s.family(model)
+}
+
+func (s *Service) family(model string) (Price, bool) {
+	if model == "" {
+		return Price{}, false
+	}
+	prefix := model + "-"
+	var match *Price
+	for key, price := range s.prices {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		price.Source = ""
+		if match == nil {
+			match = &price
+		} else if *match != price {
+			return Price{}, false
+		}
+	}
+	if match == nil {
+		return Price{}, false
+	}
+	result := *match
+	result.Source = "family"
+	return result, true
 }
 
 func (s *Service) Resolve(models []string) map[string]Price {

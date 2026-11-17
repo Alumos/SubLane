@@ -573,6 +573,9 @@ export const en = {
   allocationMineEmpty: 'No resource allowances assigned.',
   allocationKeyChoice: 'Resource allowance: {{scheme}} · {{pool}}',
   auditAllocationSave: 'Saved resource allowance',
+  auditAllocationPrices: 'Priced newly listed models',
+  allocationAutoPrices:
+    'Automatically price models newly added to the price catalog (takes effect immediately)',
   auditAllocationSettle: 'Settled resource allowance usage',
   auditAllocationReconcile: 'Confirmed external quota usage',
   auditAllocationDelete: 'Deleted resource allowance',

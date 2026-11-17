@@ -50,6 +50,7 @@ func (s *Service) leaseAccount(ctx context.Context, entry *observation, session,
 			entry.route.Exclusions.reject(err)
 		}
 	}()
+	backfilled := false
 	for {
 		if err := ctx.Err(); err != nil {
 			return id, digest, err
@@ -73,6 +74,14 @@ func (s *Service) leaseAccount(ctx context.Context, entry *observation, session,
 		}
 		id, digest, err = s.selectAllocationAccount(admissionCtx, entry.record.UserID, entry.record.GroupID, session, provider, model, kind, entry.schemeID, affinity, parentThread)
 		entry.record.AccountID = id
+		// A model the allowance has not priced yet may have a catalog price by now; price it
+		// once and select again instead of rejecting the request.
+		if errors.Is(err, allocations.ErrUnpriced) && entry.schemeID != 0 && !backfilled {
+			backfilled = true
+			if added, backfillErr := s.Allocations().BackfillPrices(admissionCtx, entry.schemeID); backfillErr == nil && added > 0 {
+				continue
+			}
+		}
 		if err != ErrAccountBusy {
 			break
 		}

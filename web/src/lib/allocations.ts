@@ -37,6 +37,7 @@ const configSchema = z.object({
   ratio_unit: unitSchema.optional(),
   windows: z.array(windowConditionSchema).max(8).optional(),
   total: integer.optional(),
+  auto_prices: z.boolean().optional(),
 })
 const priceCoverageSchema = z.object({
   missing_catalog_prices: z.array(z.string()).max(4096).optional(),

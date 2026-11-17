@@ -377,7 +377,7 @@ func (s *Service) updateScheme(ctx context.Context, id int64, in SchemeInput) (S
 				}
 			}
 		}
-		if len(in.Config.Rates) > 0 && !reflect.DeepEqual(in.Config.Rates, current.Config.Rates) {
+		if len(in.Config.Rates) > 0 && !reflect.DeepEqual(in.Config.Rates, current.Config.Rates) || in.Config.autoPrices() != current.Config.autoPrices() {
 			compatible = false
 		}
 		if !compatible || in.Name != state.Name {

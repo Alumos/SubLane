@@ -75,7 +75,12 @@ type Config struct {
 	Windows   []WindowCondition `json:"windows,omitempty"`
 	// Total is in tokens or micro-USD according to RatioUnit.
 	Total int64 `json:"total,omitempty"`
+	// AutoPrices (default on) adds catalog prices for pool models the revision has not priced yet,
+	// effective immediately; see BackfillPrices. Saved prices are never changed by it.
+	AutoPrices *bool `json:"auto_prices,omitempty"`
 }
+
+func (c Config) autoPrices() bool { return c.AutoPrices == nil || *c.AutoPrices }
 
 // PriceCoverage is derived on reads because catalogs and prices change independently of rule revisions.
 type PriceCoverage struct {
@@ -409,7 +414,28 @@ func (in *SchemeInput) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// SaveScheme saves a rule, then prices any pool model the catalog now covers (see BackfillPrices).
 func (s *Service) SaveScheme(ctx context.Context, id int64, in SchemeInput) (Scheme, error) {
+	out, err := s.saveScheme(ctx, id, in)
+	if err != nil {
+		return out, err
+	}
+	if added, err := s.BackfillPrices(ctx, out.ID); err != nil || added == 0 {
+		// The save itself committed; a failed backfill is retried on the next save or request.
+		return out, nil
+	}
+	tx, err := s.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return out, nil
+	}
+	defer tx.Rollback()
+	if fresh, err := s.readScheme(ctx, db.New(tx), out.ID, s.now().Unix()); err == nil {
+		out = fresh
+	}
+	return out, nil
+}
+
+func (s *Service) saveScheme(ctx context.Context, id int64, in SchemeInput) (Scheme, error) {
 	if id < 0 || !validName(in.Name) || in.GroupID <= 0 || !validPeriod(in.Config) {
 		return Scheme{}, ErrInput
 	}

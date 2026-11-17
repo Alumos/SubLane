@@ -343,6 +343,8 @@
   "allocationMineEmpty": "Você ainda não recebeu alocações de uso.",
   "allocationKeyChoice": "Alocação de uso: {{scheme}} · {{pool}}",
   "auditAllocationSave": "Alocação de uso salva",
+  "auditAllocationPrices": "Preços de modelos novos adicionados",
+  "allocationAutoPrices": "Adicionar automaticamente o preço de modelos novos no catálogo (efeito imediato)",
   "auditAllocationSettle": "Uso da alocação contabilizado",
   "auditAllocationReconcile": "Utilização de quotas externas confirmada",
   "auditAllocationDelete": "Alocação de uso excluída",
